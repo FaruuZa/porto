@@ -1,0 +1,270 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Omori White Space / Black Space Palette */
+  --bg-color: #0d0d11;
+  --paper-color: #14141a;
+  --text-main: #f0f0ea;
+  --text-muted: #8e8e99;
+  --border-color: #383844;
+  --accent-red: #e03131;
+  --accent-pale: #f4f4f0;
+}
+
+body.light-theme {
+  --bg-color: #f7f7f3;
+  --paper-color: #ffffff;
+  --text-main: #141416;
+  --text-muted: #62626b;
+  --border-color: #1f1f24;
+  --accent-red: #c92a2a;
+  --accent-pale: #0f0f12;
+}
+
+/* Black Space Easter Egg Mode */
+body.black-space-theme {
+  --bg-color: #070205;
+  --paper-color: #120308;
+  --text-main: #fca5a5;
+  --text-muted: #991b1b;
+  --border-color: #5c111a;
+  --accent-red: #ef4444;
+  --accent-pale: #fee2e2;
+}
+
+/* Omori Shiny Knife Custom Cursor */
+*, html, body {
+  cursor: url('/assets/knife.svg') 2 2, auto !important;
+}
+
+
+/* Slicing / down-swipe angled knife on all interactive elements */
+a, button, input, select, textarea, [role="button"], label[for], .cursor-pointer, .sketch-card, summary {
+  cursor: url('/assets/knife-slice.svg') 2 2, pointer !important;
+}
+
+/* Tactile slash down-swipe feedback on click/press */
+a:active, button:active, [role="button"]:active {
+  cursor: url('/assets/knife-slice.svg') 4 5, pointer !important;
+}
+
+/* Desktop Scroll Lock (PC/Desktop only) */
+@media (min-width: 768px) {
+  html.desktop-scroll-locked,
+  body.desktop-scroll-locked {
+    overflow: hidden !important;
+    height: 100vh !important;
+    width: 100vw !important;
+  }
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'Space Mono', 'Courier New', monospace;
+  overflow-x: hidden;
+  transition: background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+
+/* Authentic Hand-drawn doodle / sketchbook border */
+.sketch-border {
+  border: 2px solid var(--border-color);
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.sketch-border-bold {
+  border: 2.5px solid var(--border-color);
+  border-radius: 255px 18px 225px 18px/18px 225px 18px 255px;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+/* Omori iconic dialogue box */
+.omori-box {
+  background-color: #0b0b0e;
+  border: 2.5px solid #ffffff;
+  outline: 2.5px solid #000000;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.8);
+  transition: border-color 0.6s ease, background-color 0.6s ease, outline-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.light-theme .omori-box {
+  background-color: #ffffff;
+  border: 2.5px solid #000000;
+  outline: 2.5px solid #ffffff;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.15);
+  color: #000000;
+}
+
+.black-space-theme .omori-box {
+  background-color: #0d0206;
+  border: 2.5px solid #ef4444;
+  outline: 2.5px solid #000000;
+  box-shadow: 4px 4px 0px 0px rgba(220, 38, 38, 0.35);
+  color: #fca5a5;
+}
+
+/* Subtle sketch card hover */
+.sketch-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+.sketch-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-main);
+}
+
+/* Clean minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+/* Pendulum Physics Animations: anchor at the very top ceiling origin */
+@keyframes pendulumGentle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(3deg); }
+  75% { transform: rotate(-3deg); }
+}
+
+@keyframes pendulumSwing {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(6.5deg); }
+  75% { transform: rotate(-6.5deg); }
+}
+
+@keyframes pendulumPanic {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(13deg); }
+  75% { transform: rotate(-13deg); }
+}
+
+@keyframes pendulumBlackSpace {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(4.5deg); }
+  75% { transform: rotate(-4.5deg); }
+}
+
+.animate-pendulum-gentle {
+  transform-origin: 50% 0;
+  animation: pendulumGentle 3.2s ease-in-out infinite;
+}
+
+.animate-pendulum-swing {
+  transform-origin: 50% 0;
+  animation: pendulumSwing 1.7s ease-in-out infinite;
+}
+
+.animate-pendulum-panic {
+  transform-origin: 50% 0;
+  animation: pendulumPanic 0.75s ease-in-out infinite;
+}
+
+.animate-pendulum-blackspace {
+  transform-origin: 50% 0;
+  animation: pendulumBlackSpace 2.4s ease-in-out infinite;
+}
+
+/* Bulb inner element flicker: modulates light independently from pendulum rotation */
+@keyframes bulbFlicker {
+  0%, 100% { opacity: 1; }
+  15% { opacity: 0.15; }
+  35% { opacity: 0.9; }
+  55% { opacity: 0.25; }
+  70% { opacity: 0.95; }
+  85% { opacity: 0.35; }
+}
+
+@keyframes blackSpaceBulbFlicker {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.9));
+  }
+  30% {
+    opacity: 0.45;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.3));
+  }
+  60% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 1));
+  }
+  80% {
+    opacity: 0.25;
+    filter: none;
+  }
+}
+
+.animate-bulb-flicker {
+  animation: bulbFlicker 0.2s ease-in-out infinite;
+}
+
+.animate-blackspace-flicker {
+  animation: blackSpaceBulbFlicker 1.4s ease-in-out infinite;
+}
+
+/* Black Space subtle vignette & CRT scanline overlay */
+.black-space-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.95), inset 0 0 45px rgba(220, 38, 38, 0.25);
+  background: radial-gradient(circle at center, transparent 65%, rgba(20, 0, 4, 0.45) 100%);
+  animation: vignetteBreathe 4s ease-in-out infinite alternate;
+}
+
+@keyframes vignetteBreathe {
+  0% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Typewriter blinking caret */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 0.8s infinite;
+}
+
+/* Authentic Omori Black Space Psychological Horror Text Corruption (Zero Neon/Cyberpunk Glow, Zero Transforms) */
+.glitch-horror-corrupt {
+  color: #ff0033 !important;
+  font-weight: 700 !important;
+  filter: none !important;
+  text-shadow: none !important;
+  transition: none !important;
+}
+
+/* Subtle color twitch for Black Space narrative text without layout movement */
+@keyframes horrorColorTwitch {
+  0%, 93%, 100% {
+    color: inherit;
+  }
+  94% {
+    color: #ff0033;
+  }
+  96% {
+    color: #8b0000;
+  }
+  98% {
+    color: inherit;
+  }
+}
+
+.glitch-horror-text {
+  animation: horrorColorTwitch 3.8s ease-in-out infinite;
+}
+
+
+

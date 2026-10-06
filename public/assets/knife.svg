@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <!-- Omori Shiny Knife - Neutral Cursor (Tip at 2, 2) -->
+  <!-- Subtle shadow for high contrast on light & dark backgrounds -->
+  <path d="M2 2 L14 14 L11 17 L8 14 L4 18 L2 16 Z" fill="rgba(0,0,0,0.4)" transform="translate(1, 1)" />
+  
+  <!-- Knife Blade Outline -->
+  <path d="M2 2 L13 13 L10 16 L8 14 L3 17 L2 2 Z" fill="#ffffff" stroke="#111116" stroke-width="1.5" stroke-linejoin="round" />
+  
+  <!-- Shiny Blade Gradient / Details -->
+  <!-- Cutting edge highlight -->
+  <path d="M2 2 L9 9 L3 15 Z" fill="#e8edf2" />
+  <path d="M2 2 L6 6 L3 9 Z" fill="#ffffff" />
+  <!-- Blood / Red Glint reflection on the edge (Omori signature) -->
+  <line x1="2" y1="2" x2="11" y2="11" stroke="#f43f5e" stroke-width="0.8" stroke-linecap="round" opacity="0.85" />
+  
+  <!-- Knife Bolster / Guard -->
+  <rect x="12" y="12" width="3" height="4" rx="0.5" transform="rotate(45 12 12)" fill="#374151" stroke="#111116" stroke-width="1" />
+  
+  <!-- Knife Handle (Dark wood / black handle with brass rivets) -->
+  <path d="M14 14 L24 24 C25.5 25.5 25.5 28 24 29.5 C22.5 31 20 31 18.5 29.5 L11 22 Z" fill="#18181b" stroke="#111116" stroke-width="1.5" stroke-linejoin="round" />
+  <!-- Handle Grip Highlights -->
+  <path d="M14 15 L22 23" stroke="#27272a" stroke-width="1.5" />
+  <!-- Rivets -->
+  <circle cx="16" cy="18" r="0.9" fill="#e5e7eb" stroke="#111116" stroke-width="0.5" />
+  <circle cx="19" cy="21" r="0.9" fill="#e5e7eb" stroke="#111116" stroke-width="0.5" />
+  <circle cx="22" cy="24" r="0.9" fill="#e5e7eb" stroke="#111116" stroke-width="0.5" />
+</svg>
