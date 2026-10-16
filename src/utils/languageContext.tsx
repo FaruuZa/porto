@@ -17,8 +17,10 @@ const LanguageContext = createContext<LanguageContextType>({
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('porto_lang');
-      if (saved === 'id' || saved === 'en') return saved;
+      try {
+        const saved = localStorage.getItem('porto_lang');
+        if (saved === 'id' || saved === 'en') return saved;
+      } catch {}
     }
     return 'id';
   });
@@ -26,13 +28,31 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const setLang = (newLang: Language) => {
     setLangState(newLang);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('porto_lang', newLang);
+      try {
+        localStorage.setItem('porto_lang', newLang);
+        document.documentElement.lang = newLang;
+      } catch {}
     }
   };
 
   const toggleLang = () => {
-    setLang(lang === 'id' ? 'en' : 'id');
+    setLangState((prev) => {
+      const next = prev === 'id' ? 'en' : 'id';
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('porto_lang', next);
+          document.documentElement.lang = next;
+        } catch {}
+      }
+      return next;
+    });
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, toggleLang }}>

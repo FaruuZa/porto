@@ -3,14 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Developer Portfolio | Indie RPG & Software Engineer</title>
+    <title>Ahmad Abdillah Faza | Software Engineering & IT Portfolio</title>
+    <meta name="description" content="Ahmad Abdillah Faza — Software Engineering & IT Student at Politeknik Negeri Jember. Full-stack web platforms, mobile synchronization, and relational systems." />
+    <meta name="author" content="Ahmad Abdillah Faza" />
     <!-- DNS prefetch for fast font loading -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗡️</text></svg>" />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/assets/knife.svg" />
+    <script>
+      (function() {
+        try {
+          var savedTheme = localStorage.getItem('porto_theme');
+          if (savedTheme === 'light') {
+            document.documentElement.classList.add('light-theme');
+          }
+          var savedLang = localStorage.getItem('porto_lang');
+          if (savedLang) {
+            document.documentElement.lang = savedLang;
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-[#0b0c10] text-[#e0e2ec] antialiased selection:bg-red-950 selection:text-red-200 min-h-screen">
+  <body class="antialiased min-h-screen">
+    <script>
+      try {
+        if (localStorage.getItem('porto_theme') === 'light') {
+          document.body.classList.add('light-theme');
+        }
+      } catch (e) {}
+    </script>
+    <!-- Authentic Omori Hand-Drawn Line Boil SVG Filters -->
+    <svg aria-hidden="true" style="position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none;">
+      <defs>
+        <filter id="omori-boil-1" x="-15%" y="-15%" width="130%" height="130%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.045 0.04" numOctaves="2" result="noise" seed="2" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="omori-boil-2" x="-15%" y="-15%" width="130%" height="130%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.04 0.048" numOctaves="2" result="noise" seed="6" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.6" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="omori-boil-3" x="-15%" y="-15%" width="130%" height="130%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.048 0.038" numOctaves="2" result="noise" seed="11" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.1" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

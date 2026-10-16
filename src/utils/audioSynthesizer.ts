@@ -366,6 +366,11 @@ class AudioSynthesizer {
     await this.playSakelarSFX();
   }
 
+  /**
+   * playWakeUp():
+   * Authentic Omori Awakening sequence.
+   * Visceral reality-tear / stab transient -> sub-pitch collapse -> cold White Space chime breath.
+   */
   public async playWakeUp(): Promise<void> {
     if (this.isMuted) return;
     const ctx = await this.getContext();
@@ -373,27 +378,83 @@ class AudioSynthesizer {
 
     try {
       const now = ctx.currentTime;
-      const notes = [261.63, 329.63, 392.00, 523.25, 659.25]; // C Major rising arpeggio
-      notes.forEach((freq, idx) => {
-        if (!ctx) return;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
 
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+      // --- Layer 1: Visceral Reality Tear / Snap Transient ---
+      const tearLen = Math.floor(ctx.sampleRate * 0.08);
+      const tearBuf = ctx.createBuffer(1, tearLen, ctx.sampleRate);
+      const tearData = tearBuf.getChannelData(0);
+      for (let i = 0; i < tearLen; i++) {
+        tearData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (tearLen * 0.25));
+      }
 
-        gain.gain.setValueAtTime(0.06, now + idx * 0.07);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.07 + 0.32);
+      const tearSrc = ctx.createBufferSource();
+      tearSrc.buffer = tearBuf;
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+      const tearFilter = ctx.createBiquadFilter();
+      tearFilter.type = 'bandpass';
+      tearFilter.frequency.setValueAtTime(1400, now);
+      tearFilter.frequency.exponentialRampToValueAtTime(3200, now + 0.03);
+      tearFilter.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+      tearFilter.Q.setValueAtTime(2.5, now);
 
-        osc.start(now + idx * 0.07);
-        osc.stop(now + idx * 0.07 + 0.35);
-      });
+      const tearGain = ctx.createGain();
+      tearGain.gain.setValueAtTime(0.18, now);
+      tearGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+
+      tearSrc.connect(tearFilter);
+      tearFilter.connect(tearGain);
+      tearGain.connect(ctx.destination);
+      tearSrc.start(now);
+      tearSrc.stop(now + 0.08);
+
+      // --- Layer 2: Pitch Plunge (Consciousness collapsing back to reality) ---
+      const dropOsc = ctx.createOscillator();
+      const dropGain = ctx.createGain();
+      const dropFilter = ctx.createBiquadFilter();
+
+      dropOsc.type = 'triangle';
+      dropOsc.frequency.setValueAtTime(180, now);
+      dropOsc.frequency.exponentialRampToValueAtTime(35, now + 0.45);
+
+      dropFilter.type = 'lowpass';
+      dropFilter.frequency.setValueAtTime(500, now);
+      dropFilter.frequency.exponentialRampToValueAtTime(60, now + 0.45);
+
+      dropGain.gain.setValueAtTime(0.2, now);
+      dropGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+      dropOsc.connect(dropFilter);
+      dropFilter.connect(dropGain);
+      dropGain.connect(ctx.destination);
+
+      dropOsc.start(now);
+      dropOsc.stop(now + 0.45);
+
+      // --- Layer 3: Sterile White Space Awakening Bell (Soft pure chime) ---
+      const bellOsc = ctx.createOscillator();
+      const bellGain = ctx.createGain();
+
+      bellOsc.type = 'sine';
+      bellOsc.frequency.setValueAtTime(1046.5, now + 0.12); // C6
+
+      bellGain.gain.setValueAtTime(0.0001, now);
+      bellGain.gain.setValueAtTime(0.04, now + 0.12);
+      bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
+
+      bellOsc.connect(bellGain);
+      bellGain.connect(ctx.destination);
+
+      bellOsc.start(now + 0.12);
+      bellOsc.stop(now + 0.85);
     } catch {}
   }
 
+  /**
+   * playSecret():
+   * Authentic Omori Black Space Key Unlocked / Clue Gathered chime.
+   * Fragile, melancholic antique music-box tines with cold metallic overtones
+   * and a distant heavy lock thud.
+   */
   public async playSecret(): Promise<void> {
     if (this.isMuted) return;
     const ctx = await this.getContext();
@@ -401,23 +462,58 @@ class AudioSynthesizer {
 
     try {
       const now = ctx.currentTime;
-      const notes = [440, 554.37, 659.25, 880]; // A Major chime
-      notes.forEach((freq, idx) => {
+
+      // Distant hollow lock thud
+      const thudOsc = ctx.createOscillator();
+      const thudGain = ctx.createGain();
+      thudOsc.type = 'sine';
+      thudOsc.frequency.setValueAtTime(82, now);
+      thudOsc.frequency.exponentialRampToValueAtTime(32, now + 0.35);
+
+      thudGain.gain.setValueAtTime(0.18, now);
+      thudGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+      thudOsc.connect(thudGain);
+      thudGain.connect(ctx.destination);
+      thudOsc.start(now);
+      thudOsc.stop(now + 0.35);
+
+      // Antique music-box notes (Eb minor melancholy: Eb5, C5, Ab4, F4)
+      const musicBoxPitches = [622.25, 523.25, 415.30, 349.23];
+
+      musicBoxPitches.forEach((freq, idx) => {
         if (!ctx) return;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const noteStart = now + idx * 0.11;
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+        // Fundamental tone
+        const fundOsc = ctx.createOscillator();
+        const fundGain = ctx.createGain();
+        fundOsc.type = 'sine';
+        fundOsc.frequency.setValueAtTime(freq, noteStart);
 
-        gain.gain.setValueAtTime(0.05, now + idx * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.06 + 0.25);
+        fundGain.gain.setValueAtTime(0.065, noteStart);
+        fundGain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.55);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        fundOsc.connect(fundGain);
+        fundGain.connect(ctx.destination);
 
-        osc.start(now + idx * 0.06);
-        osc.stop(now + idx * 0.06 + 0.28);
+        fundOsc.start(noteStart);
+        fundOsc.stop(noteStart + 0.55);
+
+        // Metallic inharmonic chime overtone (2.756x tine resonance)
+        const chimeOsc = ctx.createOscillator();
+        const chimeGain = ctx.createGain();
+        chimeOsc.type = 'sine';
+        chimeOsc.frequency.setValueAtTime(freq * 2.756, noteStart);
+
+        chimeGain.gain.setValueAtTime(0.022, noteStart);
+        chimeGain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.22);
+
+        chimeOsc.connect(chimeGain);
+        chimeGain.connect(ctx.destination);
+
+        chimeOsc.start(noteStart);
+        chimeOsc.stop(noteStart + 0.22);
       });
     } catch {}
   }

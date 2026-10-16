@@ -1,29 +1,31 @@
-// Persistent Multi-Page Black Space Anomaly and Puzzle Manager
-// Keeps progress intact across landing page and /projects navigation
+// Multi-Section Black Space Scribble & Easter Egg Puzzle Manager
+// Oversees the 3 randomized hidden scribbles, session state, and wake-up availability
 
-export interface BlackSpaceSpawnLocations {
-  homeSection: 'hero' | 'skills' | 'profile';
-  projectCardIndex: number; // 0, 1, or 2 on /projects
-  secondaryLocation: 'hero' | 'projects' | 'contact';
+export type BlackSpaceSection = 'hero' | 'projects' | 'skills' | 'profile' | 'contact';
+
+export interface ScribbleLocation {
+  section: BlackSpaceSection;
+  slotIndex: number; // 0, 1, or 2 (subtle layout slot variation)
+  variant: 0 | 1 | 2; // Hand-drawn SVG doodle shape variation
+  id: string;
 }
 
 export interface BlackSpaceState {
   isActive: boolean;
-  totalRequired: number;
-  foundAnomalies: string[];
+  totalRequired: number; // Exactly 3 scribbles required
+  foundCount: number;
+  foundScribbleIds: string[];
   canWakeUp: boolean;
-  spawnLocations: BlackSpaceSpawnLocations;
+  scribbles: ScribbleLocation[];
 }
+
+const ALL_SECTIONS: BlackSpaceSection[] = ['hero', 'projects', 'skills', 'profile', 'contact'];
 
 class BlackSpaceManager {
   private isActive: boolean = false;
-  private foundAnomalies: Set<string> = new Set();
-  private totalRequired: number = 3;
-  private spawnLocations: BlackSpaceSpawnLocations = {
-    homeSection: 'hero',
-    projectCardIndex: 1,
-    secondaryLocation: 'contact',
-  };
+  private foundScribbleIds: Set<string> = new Set();
+  private readonly totalRequired: number = 3;
+  private scribbles: ScribbleLocation[] = [];
   private listeners: Set<(state: BlackSpaceState) => void> = new Set();
 
   public subscribe(listener: (state: BlackSpaceState) => void): () => void {
@@ -41,46 +43,60 @@ class BlackSpaceManager {
     return {
       isActive: this.isActive,
       totalRequired: this.totalRequired,
-      foundAnomalies: Array.from(this.foundAnomalies),
-      canWakeUp: this.foundAnomalies.size >= this.totalRequired,
-      spawnLocations: this.spawnLocations,
+      foundCount: this.foundScribbleIds.size,
+      foundScribbleIds: Array.from(this.foundScribbleIds),
+      canWakeUp: this.foundScribbleIds.size >= this.totalRequired,
+      scribbles: this.scribbles,
     };
   }
 
   /**
-   * Called when entering Black Space:
-   * Sets up new randomized spawn locations across landing page and /projects.
-   * Progress begins fresh for this Black Space run.
+   * Called when entering Black Space via the hanging bulb:
+   * Selects exactly 3 distinct sections out of the 5 available sections,
+   * randomizes their slot positions and visual variants, and resets progress for this session.
    */
   public enterBlackSpace(): void {
     this.isActive = true;
-    this.foundAnomalies.clear();
+    this.foundScribbleIds.clear();
 
-    const homeSections: Array<'hero' | 'skills' | 'profile'> = ['hero', 'skills', 'profile'];
-    const secondarySections: Array<'hero' | 'projects' | 'contact'> = ['hero', 'projects', 'contact'];
+    // Fisher-Yates shuffle to pick exactly 3 distinct sections
+    const shuffled = [...ALL_SECTIONS];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
 
-    this.spawnLocations = {
-      homeSection: homeSections[Math.floor(Math.random() * homeSections.length)],
-      projectCardIndex: Math.floor(Math.random() * 3), // random card 0, 1, or 2
-      secondaryLocation: secondarySections[Math.floor(Math.random() * secondarySections.length)],
-    };
+    const selectedSections = shuffled.slice(0, 3);
+    const sessionTimestamp = Date.now();
+
+    this.scribbles = selectedSections.map((sec, idx) => ({
+      section: sec,
+      slotIndex: Math.floor(Math.random() * 3), // 0, 1, or 2 within that section
+      variant: (idx % 3) as 0 | 1 | 2,
+      id: `scribble-${sec}-${sessionTimestamp}-${idx}`,
+    }));
 
     this.notify();
   }
 
   /**
-   * Called when uncovering an anomaly in any page:
-   * Persists progress so traveling between / and /projects retains the score!
+   * Called when the user clicks a hidden scribble:
+   * Silently records the discovery without exposing counter/toast text.
+   * On the 3rd discovery, enables the "Wake up" button.
    */
-  public uncoverAnomaly(anomalyId: string): boolean {
-    if (this.foundAnomalies.has(anomalyId)) return false;
-    this.foundAnomalies.add(anomalyId);
+  public collectScribble(scribbleId: string): boolean {
+    if (this.foundScribbleIds.has(scribbleId)) return false;
+    this.foundScribbleIds.add(scribbleId);
     this.notify();
     return true;
   }
 
-  public hasFound(anomalyId: string): boolean {
-    return this.foundAnomalies.has(anomalyId);
+  public hasFound(scribbleId: string): boolean {
+    return this.foundScribbleIds.has(scribbleId);
+  }
+
+  public getScribbleForSection(section: BlackSpaceSection): ScribbleLocation | undefined {
+    return this.scribbles.find((s) => s.section === section);
   }
 
   /**
@@ -88,7 +104,8 @@ class BlackSpaceManager {
    */
   public exitBlackSpace(): void {
     this.isActive = false;
-    this.foundAnomalies.clear();
+    this.foundScribbleIds.clear();
+    this.scribbles = [];
     this.notify();
   }
 

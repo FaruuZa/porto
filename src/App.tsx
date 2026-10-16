@@ -11,13 +11,15 @@ import { glitchManager } from './utils/glitchManager';
 import { blackSpaceManager } from './utils/blackSpaceState';
 import { FEATURED_PROJECTS } from './data/projectsData';
 import { LanguageProvider, useLanguage } from './utils/languageContext';
+import { SplashScreen } from './components/SplashScreen';
+import { useSanityProjects } from './sanity/useSanityProjects';
 
 export type ThemeMode = 'dark' | 'light' | 'black-space';
 
 const SECTIONS = ['hero', 'projects', 'skills', 'profile', 'contact'] as const;
 
 const SECTION_METADATA_ID = [
-  { id: 'hero', label: 'Home' },
+  { id: 'hero', label: 'Beranda' },
   { id: 'projects', label: 'Proyek' },
   { id: 'skills', label: 'Keahlian' },
   { id: 'profile', label: 'Profil' },
@@ -32,22 +34,53 @@ const SECTION_METADATA_EN = [
   { id: 'contact', label: 'Contact' },
 ] as const;
 
+const THEME_STORAGE_KEY = 'porto_theme';
+
+const getInitialTheme = (): ThemeMode => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === 'light' || saved === 'dark') {
+        return saved;
+      }
+    } catch {}
+  }
+  return 'dark';
+};
+
 const MainPortfolioApp: React.FC = () => {
   const { lang } = useLanguage();
-  const [theme, setTheme] = useState<ThemeMode>('dark');
-  const [returnTheme, setReturnTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
+  const [returnTheme, setReturnTheme] = useState<'dark' | 'light'>(() => {
+    const initial = getInitialTheme();
+    return initial === 'light' ? 'light' : 'dark';
+  });
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [projectSlide, setProjectSlide] = useState(0);
   const [bulbTriggerSignal, setBulbTriggerSignal] = useState(0);
   const [currentPath, setCurrentPath] = useState<string>(
     typeof window !== 'undefined' ? window.location.pathname : '/'
   );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname === '/' || window.location.pathname === '';
+    }
+    return false;
+  });
+
+  const handleDismissSplash = useCallback(() => {
+    setShowSplash(false);
+  }, []);
 
   const wheelThrottleRef = useRef<number>(0);
+  const lastWheelEventRef = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const touchStartX = useRef<number>(0);
+  const touchScrollEdge = useRef<{ atTop: boolean; atBottom: boolean }>({ atTop: true, atBottom: true });
 
-  const totalProjectSlides = FEATURED_PROJECTS.length + 1; // 4 featured + 1 archive card = 5
+  const { featuredProjects, loading: projectsLoading } = useSanityProjects();
+  const totalProjectSlides = featuredProjects.length + 1;
   const sectionMetadata = lang === 'id' ? SECTION_METADATA_ID : SECTION_METADATA_EN;
 
   // Synchronize browser history and popstate navigation
@@ -69,11 +102,14 @@ const MainPortfolioApp: React.FC = () => {
 
   // Synchronize audio BGM and document classes when theme changes
   useEffect(() => {
+    document.documentElement.classList.remove('light-theme', 'black-space-theme');
     document.body.classList.remove('light-theme', 'black-space-theme');
     if (theme === 'light') {
+      document.documentElement.classList.add('light-theme');
       document.body.classList.add('light-theme');
       glitchManager.stop();
     } else if (theme === 'black-space') {
+      document.documentElement.classList.add('black-space-theme');
       document.body.classList.add('black-space-theme');
       glitchManager.start();
     } else {
@@ -81,6 +117,12 @@ const MainPortfolioApp: React.FC = () => {
     }
 
     sound.handleThemeChange(theme);
+
+    if (theme === 'light' || theme === 'dark') {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+      } catch {}
+    }
 
     return () => {
       glitchManager.stop();
@@ -121,7 +163,13 @@ const MainPortfolioApp: React.FC = () => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       const now = Date.now();
-      if (now - wheelThrottleRef.current < 380) return; // 380ms debounce
+      const sinceLastEvent = now - lastWheelEventRef.current;
+      lastWheelEventRef.current = now;
+
+      // Wait for the 600ms slide to settle
+      if (now - wheelThrottleRef.current < 650) return;
+      // Ignore trailing trackpad inertia from the same gesture (events arrive ~16ms apart)
+      if (sinceLastEvent < 120 && now - wheelThrottleRef.current < 1200) return;
 
       if (e.deltaY > 25) {
         wheelThrottleRef.current = now;
@@ -141,6 +189,17 @@ const MainPortfolioApp: React.FC = () => {
     if (isProjectsPage) return;
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
+
+    // Determine whether the section's internal scroll is at an edge
+    const sectionEl = (e.target as HTMLElement).closest('section');
+    if (sectionEl && sectionEl.scrollHeight > sectionEl.clientHeight + 4) {
+      touchScrollEdge.current = {
+        atTop: sectionEl.scrollTop <= 4,
+        atBottom: sectionEl.scrollTop + sectionEl.clientHeight >= sectionEl.scrollHeight - 4,
+      };
+    } else {
+      touchScrollEdge.current = { atTop: true, atBottom: true };
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -148,14 +207,25 @@ const MainPortfolioApp: React.FC = () => {
     const deltaY = touchStartY.current - e.changedTouches[0].clientY;
     const deltaX = touchStartX.current - e.changedTouches[0].clientX;
 
-    // Trigger vertical section switch only when vertical movement dominates
-    if (Math.abs(deltaY) > 40 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2) {
+    // Re-verify current scroll position at end of gesture
+    const sectionEl = (e.target as HTMLElement).closest('section');
+    const isAtTopNow = sectionEl ? sectionEl.scrollTop <= 4 : true;
+    const isAtBottomNow = sectionEl
+      ? sectionEl.scrollTop + sectionEl.clientHeight >= sectionEl.scrollHeight - 4
+      : true;
+
+    // Trigger section switch only on distinct vertical flick (>= 55px) without accidental horizontal drift
+    if (Math.abs(deltaY) >= 55 && Math.abs(deltaY) > Math.abs(deltaX) * 1.35) {
       if (deltaY > 0) {
-        // Swiped Up -> Move Down
-        navigateToSectionIndex(activeSectionIndex + 1);
+        // Swiped Up -> Move Down (only once content is scrolled to the very bottom)
+        if (touchScrollEdge.current.atBottom && isAtBottomNow) {
+          navigateToSectionIndex(activeSectionIndex + 1);
+        }
       } else {
-        // Swiped Down -> Move Up
-        navigateToSectionIndex(activeSectionIndex - 1);
+        // Swiped Down -> Move Up (only once content is scrolled to the very top)
+        if (touchScrollEdge.current.atTop && isAtTopNow) {
+          navigateToSectionIndex(activeSectionIndex - 1);
+        }
       }
     }
   };
@@ -165,6 +235,9 @@ const MainPortfolioApp: React.FC = () => {
     if (isProjectsPage) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Already handled by a focused component (e.g. the bulb's own onKeyDown)
+      if (e.defaultPrevented) return;
+
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -175,7 +248,18 @@ const MainPortfolioApp: React.FC = () => {
         return;
       }
 
+      // Do not navigate sections if splash screen is actively showing
+      if (showSplash) return;
+
       const key = e.key.toLowerCase();
+
+      // Let Enter/Space activate whatever interactive element currently has focus
+      if (
+        (key === 'enter' || key === ' ') &&
+        target?.closest('button, a, [role="button"]')
+      ) {
+        return;
+      }
 
       // Section Navigation: W/S or ArrowUp/ArrowDown
       if (key === 'w' || key === 'arrowup') {
@@ -226,43 +310,80 @@ const MainPortfolioApp: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isProjectsPage, activeSectionIndex, navigateToSectionIndex, navigate, totalProjectSlides]);
+  }, [isProjectsPage, activeSectionIndex, navigateToSectionIndex, navigate, totalProjectSlides, showSplash]);
 
   // Direct section navigation from Navbar or CTA buttons
   const handleDirectNavigation = (sectionId: string) => {
     const targetIdx = SECTIONS.findIndex((s) => s === sectionId);
-    if (targetIdx !== -1) {
-      navigateToSectionIndex(targetIdx);
+    if (isProjectsPage) {
+      if (sectionId === 'projects') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      navigate('/');
+      if (targetIdx !== -1) {
+        setActiveSectionIndex(targetIdx);
+      }
+    } else {
+      if (targetIdx !== -1) {
+        navigateToSectionIndex(targetIdx);
+      }
     }
   };
+
+  const [isWakingUp, setIsWakingUp] = useState(false);
 
   // Enter Black Space mode
   const handleEnterBlackSpace = () => {
     if (theme !== 'black-space') {
-      setReturnTheme(theme);
+      setReturnTheme(theme === 'light' ? 'light' : 'dark');
       setTheme('black-space');
       blackSpaceManager.enterBlackSpace();
     }
   };
 
-  // Wake up safely from Black Space (strictly requiring puzzle completion)
+  // Restrained Wake Up transition from Black Space:
+  // sequence: screen fades to pitch-black -> resets to starting section (Hero) & White Space theme -> screen opens up revealing White Space
   const handleWakeUp = () => {
-    if (!blackSpaceManager.getState().canWakeUp) {
-      sound.playLampuKedipSFX();
+    if (!blackSpaceManager.getState().canWakeUp || isWakingUp) {
       return;
     }
-    blackSpaceManager.wakeUp();
-    setTheme(returnTheme);
+
+    setIsWakingUp(true);
+    sound.playWakeUp();
+
+    // At 400ms (when screen is completely black and opaque):
+    window.setTimeout(() => {
+      // 1. Return to starting section (Section 0: Hero / White Space starting room)
+      setActiveSectionIndex(0);
+      setProjectSlide(0);
+
+      // 2. If on /projects archive, return to '/'
+      if (currentPath !== '/') {
+        navigate('/');
+      }
+
+      // 3. Stop glitch manager and reset Black Space state
+      glitchManager.stop();
+      blackSpaceManager.wakeUp();
+
+      // 4. Return theme to White Space
+      setTheme(returnTheme);
+      setBulbTriggerSignal(0);
+    }, 400);
+
+    // End transition at 950ms (screen smoothly opens back up, revealing White Space)
+    window.setTimeout(() => {
+      setIsWakingUp(false);
+    }, 950);
   };
 
   // Toggle Room Dimension (strictly requiring puzzle completion if in Black Space)
   const handleToggleTheme = () => {
     if (theme === 'black-space') {
-      if (!blackSpaceManager.getState().canWakeUp) {
-        sound.playLampuKedipSFX();
-        return;
+      if (blackSpaceManager.getState().canWakeUp) {
+        handleWakeUp();
       }
-      handleWakeUp();
     } else {
       setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
     }
@@ -271,6 +392,39 @@ const MainPortfolioApp: React.FC = () => {
   return (
     <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-main)] transition-colors duration-500 selection:bg-[var(--accent-red)] selection:text-white font-mono relative">
       
+      {/* Omori Atmospheric Splash Screen (Only on Home/Landing page) */}
+      {!isProjectsPage && showSplash && (
+        <SplashScreen
+          theme={theme}
+          onDismiss={handleDismissSplash}
+          isDataLoaded={!projectsLoading}
+        />
+      )}
+
+      {/* Restrained Wake-Up Transition Overlay */}
+      {isWakingUp && (
+        <div
+          className="wake-up-overlay fixed inset-0 z-60 pointer-events-auto"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Atmospheric Breathing Vignette Overlay in Black Space */}
+      {theme === 'black-space' && (
+        <div className="black-space-vignette" aria-hidden="true" />
+      )}
+      
+      {/* Main Top Navigation (Universal across landing and /projects) */}
+      <Navbar
+        theme={theme}
+        activeSectionId={SECTIONS[activeSectionIndex]}
+        isProjectsPage={isProjectsPage}
+        onToggleTheme={handleToggleTheme}
+        onNavigateSection={handleDirectNavigation}
+        onMobileMenuToggle={setIsMobileMenuOpen}
+        onOpenAllProjects={() => navigate('/projects')}
+      />
+
       {/* Dedicated Archive View */}
       {isProjectsPage ? (
         <ProjectsPage
@@ -280,20 +434,12 @@ const MainPortfolioApp: React.FC = () => {
         />
       ) : (
         <>
-          {/* Main Top Navigation */}
-          <Navbar
-            theme={theme}
-            activeSectionId={SECTIONS[activeSectionIndex]}
-            onToggleTheme={handleToggleTheme}
-            onNavigateSection={handleDirectNavigation}
-            onOpenAllProjects={() => navigate('/projects')}
-          />
-
           {/* Main Full-Screen Snap Flow (5 Clean Sections) */}
           <main
+            key={theme}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
-            className="w-full h-[100dvh] md:h-screen overflow-hidden relative"
+            className="w-full h-[100dvh] md:h-screen overflow-hidden relative overscroll-none"
           >
             <div
               className="w-full h-full transition-transform duration-600 ease-[cubic-bezier(0.16,1,0.3,1)]"
@@ -354,11 +500,12 @@ const MainPortfolioApp: React.FC = () => {
                   key={item.id}
                   onClick={() => navigateToSectionIndex(idx)}
                   onMouseEnter={() => sound.playTextBlip()}
-                  className={`group relative flex items-center justify-end transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-red)] ${
+                  className={`group relative flex items-center justify-end transition cursor-pointer ${
                     isActive ? 'scale-105' : 'opacity-70 hover:opacity-100'
                   }`}
-                  aria-label={`Pindah ke section ${item.label}`}
-                  title={`Section 0${idx + 1}: ${item.label}`}
+                  aria-label={lang === 'id' ? `Pindah ke bagian ${item.label}` : `Go to ${item.label} section`}
+                  aria-current={isActive ? 'true' : undefined}
+                  title={`0${idx + 1}. ${item.label}`}
                 >
                   {/* Tooltip on Hover */}
                   <span
@@ -389,39 +536,41 @@ const MainPortfolioApp: React.FC = () => {
           </aside>
 
           {/* Mobile Current Section Floating Badge (Bottom-Left) */}
-          <div
-            className="fixed bottom-4 left-4 z-40 md:hidden flex items-center gap-2 px-3 py-1.5 bg-[var(--paper-color)] sketch-border text-[11px] font-mono shadow-xl select-none"
-          >
-            <span className="w-2 h-2 rounded-full bg-[var(--accent-red)] animate-pulse inline-block" />
-            <span className="font-bold text-[var(--text-main)]">
-              [ 0{activeSectionIndex + 1} / 0{SECTIONS.length} ]{' '}
-              <span className="text-[var(--accent-red)]">
-                {sectionMetadata[activeSectionIndex].label.toUpperCase()}
+          {!isMobileMenuOpen && !isProjectsPage && (
+            <div
+              className="mobile-section-badge fixed bottom-4 left-4 z-30 md:hidden flex items-center gap-2 px-3 py-1.5 bg-[var(--paper-color)] sketch-border text-[11px] font-mono shadow-xl select-none"
+              aria-live="polite"
+            >
+              <span className="w-2 h-2 bg-[var(--accent-red)] inline-block" />
+              <span className="font-bold text-[var(--text-main)]">
+                [ 0{activeSectionIndex + 1} / 0{SECTIONS.length} ]{' '}
+                <span className="text-[var(--accent-red)]">
+                  {sectionMetadata[activeSectionIndex].label.toUpperCase()}
+                </span>
               </span>
-            </span>
-          </div>
+            </div>
+          )}
 
           {/* Bottom-Right Keyboard Controls HUD (PC/Desktop Only) */}
           <div
-            className="hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2.5 px-3 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-main)] shadow-xl select-none transition-all"
-            title="Arcade Keyboard Controls"
+            className="hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2.5 px-3 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] shadow-xl select-none"
+            title="Keyboard Controls"
           >
-            <span className="w-2 h-2 rounded-full bg-[var(--accent-red)] animate-pulse inline-block" />
+            <span className="w-2 h-2 bg-[var(--accent-red)] inline-block" />
             {SECTIONS[activeSectionIndex] === 'projects' ? (
               <span>
-                <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> Section |{' '}
-                <kbd className="font-bold text-[var(--accent-red)]">[A/D]</kbd> {lang === 'id' ? 'Slide Kartu' : 'Slide Card'} |{' '}
+                <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> {lang === 'id' ? 'Bagian' : 'Section'} <span className="opacity-40">|</span>{' '}
+                <kbd className="font-bold text-[var(--accent-red)]">[A/D]</kbd> {lang === 'id' ? 'Geser Kartu' : 'Slide Card'} <span className="opacity-40">|</span>{' '}
                 <kbd className="font-bold text-[var(--accent-red)]">[ENTER]</kbd> {lang === 'id' ? 'Arsip' : 'Archive'}
               </span>
             ) : SECTIONS[activeSectionIndex] === 'hero' ? (
               <span>
-                <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> Section |{' '}
+                <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> {lang === 'id' ? 'Bagian' : 'Section'} <span className="opacity-40">|</span>{' '}
                 <kbd className="font-bold text-[var(--accent-red)]">[SPACE/ENTER]</kbd> {lang === 'id' ? 'Lampu Gantung' : 'Lightbulb'}
               </span>
             ) : (
               <span>
-                <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> {lang === 'id' ? 'Pindah Section' : 'Move Section'} |{' '}
-                <kbd className="font-bold text-[var(--accent-red)]">[ENTER]</kbd> {lang === 'id' ? 'Pilih' : 'Select'}
+                <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> {lang === 'id' ? 'Pindah Bagian' : 'Move Section'}
               </span>
             )}
           </div>

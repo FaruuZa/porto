@@ -1,42 +1,28 @@
-// Psychological Horror Text Infection Engine for Omori Black Space Mode
-// Infects normal text across the entire page (paragraphs, headings, cards, spans)
-// Corrupts at least 1 FULL word per infected node (full symbol scramble or horror word injection)
-// High frequency ripple with zero layout distortion (exact word lengths preserved).
+// Atmospheric Psychological Glitch Engine for Omori Black Space Mode
+// Granular character-level corruption: tints ONLY the specific corrupted symbol/word, never the entire paragraph.
+// Prioritizes visible elements on screen so the distortion is tangibly felt.
+// Includes a 35% chance for glitched characters to STAY permanently corrupted until Wake Up.
 
-const HORROR_GLYPHS = [
-  '!', '@', '#', '$', '%', '&', '*', '?', '/',
-  'X', '0', '1', 'Ø', '§', '†', '‡', '¿',
-  '█', '░', '▒', '▓'
-];
+const CORRUPTION_GLYPHS = ['?', 'X', '_', '0', '~', '§', 'Ø', '#', '1', '!', '%', '█'];
 
-const HORROR_WORDS_EN = [
-  'WATCHING', 'SOMETHING', 'COLD', 'SHADOW', 'ROTTEN',
-  'FLESH', 'GUILT', 'ALONE', 'LIAR', 'STATIC', 'SILENCE',
-  'DROWN', 'SINK', 'FORGET', 'VOID', 'BEHIND', 'DARK'
-];
-
-const HORROR_WORDS_ID = [
-  'MELIHAT', 'SESUATU', 'DINGIN', 'BAYANGAN', 'SENDIRI',
-  'BOHONG', 'HILANG', 'GELAP', 'TAKUT', 'BUNGKAM', 'LENYAP'
-];
-
-interface ActiveInfection {
-  originalText: string;
+interface ActiveTwitch {
+  preTwitchHtml: string;
   timeoutId: number;
 }
 
 class GlitchManager {
   private intervalId: number | null = null;
-  private activeInfections = new Map<HTMLElement, ActiveInfection>();
+  private pristineContent = new Map<HTMLElement, string>();
+  private activeTwitches = new Map<HTMLElement, ActiveTwitch>();
 
   public start(): void {
     if (typeof window === 'undefined') return;
     if (this.intervalId !== null) return;
 
-    // Accelerated frequency: pulse infection every 130ms
+    // Atmospheric pulse: glitches trigger every 450ms on visible text
     this.intervalId = window.setInterval(() => {
-      this.infectRandomNodes();
-    }, 130);
+      this.pulseGlitch();
+    }, 450);
   }
 
   private getCandidateElements(): HTMLElement[] {
@@ -44,27 +30,41 @@ class GlitchManager {
 
     const candidates: HTMLElement[] = [];
     const elements = document.querySelectorAll<HTMLElement>(
-      'p, h1, h2, h3, h4, span, li, a, [data-glitch]'
+      'p, span, h1, h2, h3, li, strong, kbd, [data-glitch]'
     );
 
     elements.forEach((el) => {
-      // Exclude interactive elements that shouldn't be disrupted (inputs, buttons with icons, redacted targets)
+      // Exclude interactive elements and non-content areas
       if (
         el.tagName === 'INPUT' ||
         el.tagName === 'TEXTAREA' ||
         el.tagName === 'BUTTON' ||
         el.closest('button') ||
+        el.closest('a') ||
         el.closest('svg') ||
         el.closest('[data-no-glitch]') ||
-        el.classList.contains('redacted-block')
+        el.closest('.scribble-mark') ||
+        el.closest('.wake-up-overlay') ||
+        el.closest('nav')
       ) {
         return;
       }
 
-      // Check if element has direct text content (leaf text container)
+      // Exclude containers with structural children so we only corrupt leaf content
+      const nonGlitchChildren = Array.from(el.children).filter(
+        (child) =>
+          !child.classList.contains('glitch-char-corrupt') &&
+          !child.classList.contains('glitch-char-permanent')
+      );
+      if (nonGlitchChildren.length > 0) {
+        return;
+      }
+
+      // Check if element has sufficient text content
       const text = el.textContent?.trim();
-      if (text && text.length >= 3 && el.children.length === 0) {
-        if (!this.activeInfections.has(el)) {
+      if (text && text.length >= 6) {
+        // Exclude elements currently undergoing a temporary twitch
+        if (!this.activeTwitches.has(el)) {
           candidates.push(el);
         }
       }
@@ -73,89 +73,90 @@ class GlitchManager {
     return candidates;
   }
 
-  private infectRandomNodes(): void {
-    const candidates = this.getCandidateElements();
-    if (candidates.length === 0) return;
+  private pulseGlitch(): void {
+    const allCandidates = this.getCandidateElements();
+    if (allCandidates.length === 0) return;
 
-    // Infect 3 to 6 random elements simultaneously across the page
-    const countToInfect = Math.min(candidates.length, Math.floor(Math.random() * 4) + 3);
+    // Prioritize visible elements currently within viewport
+    const visibleCandidates = allCandidates.filter((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0 && rect.height > 0;
+    });
 
-    for (let c = 0; c < countToInfect; c++) {
-      const target = candidates[Math.floor(Math.random() * candidates.length)];
-      if (!target || this.activeInfections.has(target)) continue;
+    const candidatePool = visibleCandidates.length > 0 ? visibleCandidates : allCandidates;
 
-      const originalText = target.textContent || '';
-      if (originalText.trim().length < 3) continue;
+    // Corrupt 1-2 elements per pulse for noticeable yet eerie decay
+    const countToGlitch = Math.min(candidatePool.length, Math.random() < 0.4 ? 2 : 1);
+    const selected = new Set<HTMLElement>();
 
-      const words = originalText.split(' ');
-      if (words.length === 0) continue;
-
-      // Select 1 random word (at least 2 letters) in the sentence to corrupt
-      const eligibleWordIndices: number[] = [];
-      words.forEach((w, idx) => {
-        if (w.trim().length >= 2) eligibleWordIndices.push(idx);
-      });
-
-      if (eligibleWordIndices.length === 0) continue;
-      const targetWordIdx = eligibleWordIndices[Math.floor(Math.random() * eligibleWordIndices.length)];
-      const originalWord = words[targetWordIdx];
-      if (!originalWord) continue;
-
-      let corruptedWord = '';
-
-      // 30% chance to inject an uncanny psychological horror word
-      const shouldInjectHorrorWord = Math.random() < 0.30;
-
-      if (shouldInjectHorrorWord) {
-        const pool = Math.random() < 0.5 ? HORROR_WORDS_EN : HORROR_WORDS_ID;
-        const horrorCandidate = pool[Math.floor(Math.random() * pool.length)];
-
-        // Mutate 1-2 letters inside the horror word with symbols
-        corruptedWord = horrorCandidate
-          .split('')
-          .map((ch, i) => {
-            if (i === 1 || i === Math.floor(horrorCandidate.length / 2)) {
-              return HORROR_GLYPHS[Math.floor(Math.random() * HORROR_GLYPHS.length)];
-            }
-            return ch;
-          })
-          .join('');
-      } else {
-        // Corrupt at least 1 FULL word into glitch symbols (preserving punctuation and length)
-        corruptedWord = originalWord
-          .split('')
-          .map((ch, idx) => {
-            // Keep common punctuation at boundaries
-            if (ch === '.' || ch === ',' || ch === ':' || ch === '-' || ch === '"' || ch === "'") {
-              return ch;
-            }
-            // Retain the first letter 20% of the time, otherwise replace entire word with symbols
-            if (idx === 0 && Math.random() < 0.2) {
-              return ch;
-            }
-            return HORROR_GLYPHS[Math.floor(Math.random() * HORROR_GLYPHS.length)];
-          })
-          .join('');
+    for (let c = 0; c < countToGlitch; c++) {
+      const target = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+      if (target && !selected.has(target) && !this.activeTwitches.has(target)) {
+        selected.add(target);
+        this.corruptElement(target);
       }
+    }
+  }
 
-      // Replace that full word in the sentence
-      words[targetWordIdx] = corruptedWord;
-      target.textContent = words.join(' ');
-      target.classList.add('glitch-horror-corrupt');
+  private corruptElement(target: HTMLElement): void {
+    // Record original pristine content on first contact so Wake Up restores it completely
+    if (!this.pristineContent.has(target)) {
+      this.pristineContent.set(target, target.innerHTML);
+    }
 
-      // Infection duration: stays infected for 400ms to 800ms, then heals smoothly
-      const infectionDuration = 400 + Math.random() * 400;
+    const currentText = target.textContent || '';
+    const words = currentText.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return;
 
+    // Pick 1 eligible word with length >= 3
+    const eligibleIndices: number[] = [];
+    words.forEach((w, idx) => {
+      const glyphCount = w.split('').filter((ch) => CORRUPTION_GLYPHS.includes(ch)).length;
+      if (w.length >= 3 && glyphCount < w.length * 0.6) {
+        eligibleIndices.push(idx);
+      }
+    });
+
+    if (eligibleIndices.length === 0) return;
+    const targetWordIdx = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
+    const originalWord = words[targetWordIdx];
+    if (!originalWord) return;
+
+    // Mutate 1-2 characters in the word into glitch glyphs
+    const chars = originalWord.split('');
+    const mutateIdx = Math.floor(Math.random() * chars.length);
+    chars[mutateIdx] = CORRUPTION_GLYPHS[Math.floor(Math.random() * CORRUPTION_GLYPHS.length)];
+
+    if (chars.length > 4 && Math.random() < 0.6) {
+      const secondIdx = (mutateIdx + 1) % chars.length;
+      chars[secondIdx] = CORRUPTION_GLYPHS[Math.floor(Math.random() * CORRUPTION_GLYPHS.length)];
+    }
+
+    // 35% chance that the glitch STAYS permanently for this Black Space session!
+    const shouldStayPermanent = Math.random() < 0.35;
+
+    const corruptedSpan = shouldStayPermanent
+      ? `<span class="glitch-char-permanent">${chars.join('')}</span>`
+      : `<span class="glitch-char-corrupt">${chars.join('')}</span>`;
+
+    const preTwitchHtml = target.innerHTML;
+
+    // Replace ONLY that specific word with the styled corrupted span (never entire paragraph)
+    const newWords = [...words];
+    newWords[targetWordIdx] = corruptedSpan;
+    target.innerHTML = newWords.join(' ');
+
+    if (!shouldStayPermanent) {
+      // Temporary twitch: heals after 380ms
       const timeoutId = window.setTimeout(() => {
-        if (this.activeInfections.has(target)) {
-          target.textContent = originalText;
-          target.classList.remove('glitch-horror-corrupt');
-          this.activeInfections.delete(target);
+        if (this.activeTwitches.has(target)) {
+          target.innerHTML = preTwitchHtml;
+          this.activeTwitches.delete(target);
         }
-      }, infectionDuration);
+      }, 380);
 
-      this.activeInfections.set(target, {
-        originalText,
+      this.activeTwitches.set(target, {
+        preTwitchHtml,
         timeoutId,
       });
     }
@@ -167,13 +168,17 @@ class GlitchManager {
       this.intervalId = null;
     }
 
-    // Instantly restore all infected elements back to pristine text
-    this.activeInfections.forEach((infection, el) => {
-      clearTimeout(infection.timeoutId);
-      el.textContent = infection.originalText;
-      el.classList.remove('glitch-horror-corrupt');
+    // Cancel all pending temporary twitches
+    this.activeTwitches.forEach((twitch) => {
+      clearTimeout(twitch.timeoutId);
     });
-    this.activeInfections.clear();
+    this.activeTwitches.clear();
+
+    // Instantly restore all permanently and temporarily glitched elements back to pristine HTML
+    this.pristineContent.forEach((originalHtml, el) => {
+      el.innerHTML = originalHtml;
+    });
+    this.pristineContent.clear();
   }
 }
 

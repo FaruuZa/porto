@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { sound } from '../utils/audio';
-import { blackSpaceManager, BlackSpaceState } from '../utils/blackSpaceState';
-import { RedactedText } from './RedactedText';
+import { blackSpaceManager, BlackSpaceState, ScribbleLocation } from '../utils/blackSpaceState';
 import { ThemeMode } from '../App';
 import { useLanguage } from '../utils/languageContext';
+import { BlackScribble } from './BlackScribble';
+import { useSanityProfile } from '../sanity/useSanityProfile';
+import { getLocalizedText } from '../utils/projectHelpers';
 
 interface HeroSectionProps {
   theme: ThemeMode;
@@ -24,7 +26,7 @@ const BULB_MESSAGE_POOL_EN = [
   "Did you see something moving in the corner of your eye?",
   "Everything is going to be okay. Everything is going to be okay.",
   "A faint whisper echoes: 'Do you really want to wake up?'",
-  "The shadows stretch violently across the floor.",
+  "The shadows stretch quietly across the floor.",
   "The room feels colder than before.",
   "Don't stare directly into the glass...",
   "An erratic pop. The wire trembles.",
@@ -50,11 +52,11 @@ const BULB_MESSAGE_POOL_ID = [
 export const HeroSection: React.FC<HeroSectionProps> = ({
   theme,
   onEnterBlackSpace,
-  onWakeUp,
   bulbTriggerSignal,
   onNavigateSection,
 }) => {
   const { lang } = useLanguage();
+  const { profile } = useSanityProfile();
   const isBlackSpace = theme === 'black-space';
   const [clickCount, setClickCount] = useState(0);
   const [isFlickering, setIsFlickering] = useState(false);
@@ -70,15 +72,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     return () => unsub();
   }, []);
 
-  // Reset state when theme changes
+  // Reset state when leaving Black Space
   useEffect(() => {
     if (!isBlackSpace) {
       setClickCount(0);
       setIsFlickering(false);
+      setCurrentMessageIndex(0);
     }
   }, [isBlackSpace]);
 
-  // Keyboard Enter / Space trigger
+  // Keyboard Enter / Space trigger on Hero section
   useEffect(() => {
     if (bulbTriggerSignal && bulbTriggerSignal > 0) {
       handleBulbClick();
@@ -87,21 +90,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   const handleBulbClick = () => {
     if (isBlackSpace) {
+      // In Black Space: The crimson bulb watches in silence.
+      // It does NOT wake you up (only the "Wake up" button does).
       sound.playSakelarSFX();
-      // In Black Space: Wake up ONLY if challenge is completed (all anomalies found)!
-      if (puzzleState.canWakeUp) {
-        onWakeUp();
-        return;
-      }
-      // Strictly no shortcut: just cycle psychological note
-      const nextMsgIdx = Math.floor(Math.random() * bulbPool.length);
-      setCurrentMessageIndex(nextMsgIdx);
       return;
     }
 
-    // Probability-Based Click Logic:
+    // White Space click progression:
     if (isFlickering) {
-      // 100% trigger to Black Space on the click following the flicker!
+      // Repeated clicks after flicker trigger transition into Black Space
       sound.playBlackSpaceTriggerSFX();
       setIsFlickering(false);
       setClickCount(0);
@@ -112,13 +109,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     const nextCount = clickCount + 1;
     setClickCount(nextCount);
 
-    // Pick random quote from pool
     const nextMsgIdx = Math.floor(Math.random() * bulbPool.length);
     setCurrentMessageIndex(nextMsgIdx);
 
-    if (nextCount >= 6) {
-      // 45% random chance to trigger electrical flicker on clicks 6+
-      const triggered = Math.random() < 0.45;
+    if (nextCount >= 5) {
+      // Slight flicker / subtle visual response on repeated clicks
+      const triggered = Math.random() < 0.5 || nextCount >= 7;
       if (triggered) {
         setIsFlickering(true);
         sound.playLampuKedipSFX();
@@ -126,12 +122,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         sound.playSakelarSFX();
       }
     } else {
-      // Normal click
       sound.playSakelarSFX();
     }
   };
 
-  // Determine pendulum animation
+  // Restrained pendulum animations
   let pendulumAnimationClass = '';
   let flickerAnimationClass = '';
 
@@ -151,16 +146,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     if (isBlackSpace) {
       return puzzleState.canWakeUp
         ? lang === 'id'
-          ? "Bohlam merah berdenyut pelan. Pintu terbuka. [Klik bohlam untuk BANGUN]"
-          : "The crimson bulb pulsates. The door is open. [Click bulb to WAKE UP]"
+          ? "Bohlam merah menatap dalam hening. Sesuatu bergerak perlahan..."
+          : "The crimson bulb watches in silence. Something stirs..."
         : lang === 'id'
         ? "Bohlam merah menatap dalam hening. Masih ada sesuatu yang belum terkuak..."
         : "The crimson bulb watches in silence. Something remains hidden...";
     }
     if (isFlickering) {
       return lang === 'id'
-        ? "Filamen bergetar hebat memercikkan listrik. Bayangan bergerak di dinding ruangan..."
-        : "The filament violently sparks. Shadows twitch against the walls. Waiting for something to happen?";
+        ? "Filamen bergetar redup. Bayangan bergerak perlahan di sudut ruangan..."
+        : "The filament flickers dimly. Shadows twitch against the walls...";
     }
     if (clickCount === 0) {
       return lang === 'id'
@@ -168,22 +163,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         : "A black lightbulb hangs from the ceiling. It feels cold to the touch.";
     }
     return bulbPool[currentMessageIndex % bulbPool.length];
-  }, [isBlackSpace, isFlickering, clickCount, currentMessageIndex, puzzleState, lang, bulbPool]);
+  }, [isBlackSpace, isFlickering, clickCount, currentMessageIndex, puzzleState.canWakeUp, lang, bulbPool]);
 
-  const shouldSpawnAnomalyInHero =
-    isBlackSpace &&
-    (puzzleState.spawnLocations.homeSection === 'hero' ||
-      puzzleState.spawnLocations.secondaryLocation === 'hero');
+  // Find scribble for hero section if selected in this Black Space session
+  const heroScribble: ScribbleLocation | undefined = useMemo(() => {
+    if (!isBlackSpace) return undefined;
+    return puzzleState.scribbles.find((s) => s.section === 'hero');
+  }, [isBlackSpace, puzzleState.scribbles]);
 
   return (
     <section
       id="hero"
-      className="h-[100dvh] md:h-screen w-full flex flex-col justify-center items-center overflow-y-auto md:overflow-hidden px-4 sm:px-6 font-mono select-none relative pt-12 pb-6 md:py-0"
+      className="section-shell font-mono"
     >
-      <div className="w-full max-w-3xl flex flex-col items-center justify-center my-auto">
+      <div className="section-inner items-center relative">
         
         {/* Hanging Lightbulb Assembly */}
         <div
+          id="hero-bulb"
           onClick={handleBulbClick}
           onMouseEnter={() => sound.playTextBlip()}
           role="button"
@@ -194,15 +191,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               handleBulbClick();
             }
           }}
-          className={`cursor-pointer transition-transform duration-300 origin-top focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-red)] rounded-sm p-1 ${pendulumAnimationClass}`}
+          className={`cursor-pointer transition-transform duration-300 origin-top focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-red)] rounded-sm p-1 select-none ${pendulumAnimationClass}`}
           style={{ transformOrigin: '50% 0' }}
-          title={
-            isBlackSpace
-              ? puzzleState.canWakeUp
-                ? "Click bulb to WAKE UP"
-                : "The crimson bulb"
-              : "A hanging lightbulb..."
-          }
+          title={isBlackSpace ? "The crimson bulb" : "A hanging lightbulb..."}
           aria-label="Omori hanging lightbulb"
         >
           <svg
@@ -248,7 +239,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   isBlackSpace
                     ? "#ef4444"
                     : isFlickering
-                    ? "#ff0033"
+                    ? "#e03131"
                     : "var(--text-main)"
                 }
                 strokeWidth="1.75"
@@ -260,7 +251,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   isBlackSpace
                     ? "#8b0000"
                     : isFlickering
-                    ? "#ff0033"
+                    ? "#e03131"
                     : "var(--border-color)"
                 }
                 strokeWidth="1.2"
@@ -274,7 +265,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   isBlackSpace
                     ? "#8b0000"
                     : isFlickering
-                    ? "#ff0033"
+                    ? "#e03131"
                     : "none"
                 }
               />
@@ -283,13 +274,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </div>
 
         {/* Psychological Status Note under Bulb */}
-        <div className="mt-1 text-center max-w-sm sm:max-w-md px-2">
+        <div className="mt-2 text-center max-w-sm sm:max-w-md px-2">
           <p
-            className={`text-[11px] sm:text-xs italic leading-tight transition-colors duration-300 ${
+            data-no-glitch="true"
+            aria-live="polite"
+            className={`text-[11px] sm:text-xs italic leading-snug min-h-[2.75em] transition-colors duration-300 ${
               isBlackSpace
-                ? 'text-red-400 font-bold'
+                ? 'text-[var(--text-muted)] italic'
                 : isFlickering
-                ? 'text-red-500 font-bold animate-pulse'
+                ? 'text-red-500 font-semibold animate-pulse'
                 : 'text-[var(--text-muted)]'
             }`}
           >
@@ -297,100 +290,103 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </p>
         </div>
 
-        {/* Combined Iconic Omori Dialogue Box (White Space Chamber & Bio) */}
-        <div className="omori-box p-4 sm:p-6 text-[var(--text-main)] w-full relative overflow-hidden shadow-2xl mt-3 sm:mt-4">
+        {/* Iconic Omori Dialogue Box (White Space Chamber & Student Bio) */}
+        <div className="omori-box p-4 sm:p-6 text-[var(--text-main)] w-full relative shadow-2xl mt-3 sm:mt-4">
           
+          {/* Slot 0: Nested in dialogue box bottom corner */}
+          {heroScribble && heroScribble.slotIndex === 0 && (
+            <div className="absolute -bottom-3 -left-2 z-20">
+              <BlackScribble scribble={heroScribble} />
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2 mb-2">
-            <span className="text-[10px] sm:text-[11px] text-[var(--accent-red)] uppercase tracking-widest font-bold">
-              {isBlackSpace ? (
-                <span className="text-[#8b0000] font-bold">
-                  &gt; BLACK SPACE // MEMORY CORRUPTION
-                </span>
-              ) : (
-                '> SYSTEM DIALOGUE'
+            <div className="flex items-center gap-2">
+              <span data-no-glitch="true" className="text-[10px] sm:text-[11px] text-[var(--accent-red)] uppercase tracking-widest font-bold">
+                {isBlackSpace ? (
+                  <span>
+                    &gt; BLACK SPACE // MEMORY CORRUPTION
+                  </span>
+                ) : (
+                  '> SYSTEM DIALOGUE'
+                )}
+              </span>
+
+              {/* Slot 1: Alongside system dialogue marker */}
+              {heroScribble && heroScribble.slotIndex === 1 && (
+                <BlackScribble scribble={heroScribble} className="ml-1" />
               )}
-            </span>
+            </div>
+
             {isBlackSpace && (
-              <span className="text-[10px] text-[#ff0033] font-mono tracking-wider animate-pulse hidden sm:inline font-bold">
+              <span data-no-glitch="true" className="text-[10px] text-[var(--text-muted)] font-mono tracking-wider opacity-80 hidden sm:inline font-bold">
                 [RECORD_#01]
               </span>
             )}
           </div>
 
-          <h1 className="text-lg sm:text-2xl font-bold mb-2.5 leading-tight">
+          <h1 data-no-glitch="true" className="text-lg sm:text-2xl font-bold mb-2.5 leading-tight text-[var(--text-main)]">
             {isBlackSpace ? (
-              <span className="text-[#ff0033] font-bold">
-                Welcome to Black Space.
+              <span>
+                Welcome to <span className="text-[var(--accent-red)] font-bold">Black Space</span>.
               </span>
             ) : (
               'Welcome to White Space.'
             )}
           </h1>
 
-          <div className="text-xs sm:text-sm leading-relaxed text-[var(--text-main)]/90 mb-3.5 font-sans">
+          <div className="text-xs sm:text-sm leading-relaxed mb-3.5 font-sans">
             {isBlackSpace ? (
-              <div className="text-[#fca5a5]/90 italic">
-                <span>"A quiet digital domain where code, databases, and curiosity intertwine.{' '}</span>
-                {shouldSpawnAnomalyInHero ? (
-                  <RedactedText
-                    theme={theme}
-                    anomalyId="anomaly-hero"
-                    originalText="A dark presence lurks beneath the floorboards."
-                    corruptedText="OMORI_MEMORY_#01"
-                  />
-                ) : (
-                  <span>You have been building systems here for as long as you can remember.</span>
-                )}
-                <span> There is no runtime error that cannot be resolved."</span>
+              <div className="text-[var(--text-main)]/85 italic">
+                <span>"A quiet domain where coursework, curiosity, and unfinished prototypes intertwine.{' '}</span>
+                <span>You have been experimenting here for as long as you can remember.{' '}</span>
+                <span>Waiting for something to happen?"</span>
               </div>
-            ) : lang === 'id' ? (
-              <p>
-                Halo! Saya Faza, mahasiswa D4 Teknik Informatika di{' '}
-                <strong className="font-semibold text-[var(--text-main)]">
-                  Politeknik Negeri Jember (Semester 5)
-                </strong>. 
-                Fokus mendalami software craftsmanship: arsitektur backend sistem informasi, perancangan database relasional, dan ekosistem aplikasi mobile.
-              </p>
             ) : (
-              <p>
-                Hello! I am Faza, a Software Engineering student at{' '}
-                <strong className="font-semibold text-[var(--text-main)]">
-                  Politeknik Negeri Jember (Semester 5)
-                </strong>. 
-                Focused on software craftsmanship: architecting clinical ERP backends, high-speed relational schemas, and integrated mobile ecosystems.
+              <p className="text-[var(--text-main)] whitespace-pre-line">
+                {getLocalizedText(profile.heroBio, lang)}
               </p>
             )}
           </div>
 
-          {/* Quick Academic & Status HUD */}
+          {/* Academic & Status HUD */}
           <div className="text-[10px] sm:text-xs text-[var(--text-muted)] font-mono border-t border-[var(--border-color)] pt-2.5 flex flex-wrap items-center gap-x-3.5 gap-y-1">
-            <span>{lang === 'id' ? 'IPK' : 'GPA'}: <strong className="text-[var(--text-main)]">{isBlackSpace ? '???' : '3.72'}</strong></span>
+            <span>{lang === 'id' ? 'IPK' : 'GPA'}: <strong className="text-[var(--text-main)]">{isBlackSpace ? '???' : (profile.education?.gpa || '3.72')}</strong></span>
             <span className="opacity-40">•</span>
-            <span>Semester: <strong className="text-[var(--text-main)]">{isBlackSpace ? '?' : '5'}</strong></span>
+            <span>Semester: <strong className="text-[var(--text-main)]">{isBlackSpace ? '?' : (profile.education?.semester ?? 5)}</strong></span>
             <span className="opacity-40">•</span>
-            <span>Status: <strong className="text-[var(--text-main)]">{isBlackSpace ? '???' : lang === 'id' ? 'Terbuka untuk Magang' : 'Open for Internship'}</strong></span>
+            <span>Status: <strong className="text-[var(--text-main)]">{isBlackSpace ? '???' : getLocalizedText(profile.status, lang)}</strong></span>
             <span className="opacity-40">•</span>
-            <span>{lang === 'id' ? 'Domisili' : 'Location'}: <strong className="text-[var(--text-main)]">{isBlackSpace ? '???' : 'Jember, ID'}</strong></span>
+            <span>{lang === 'id' ? 'Domisili' : 'Location'}: <strong className="text-[var(--text-main)]">{isBlackSpace ? '???' : (profile.location || 'Jember, ID')}</strong></span>
           </div>
 
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-4 sm:mt-5 flex items-center justify-center gap-3">
+        <div className="mt-5 w-full flex flex-col min-[400px]:flex-row items-stretch min-[400px]:items-center justify-center gap-2.5 sm:gap-3 relative">
           <button
             onClick={() => onNavigateSection?.('projects')}
             onMouseEnter={() => sound.playTextBlip()}
-            className="px-5 py-2 sketch-border bg-[var(--paper-color)] hover:bg-[var(--text-main)] hover:text-[var(--bg-color)] text-[var(--text-main)] font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            className="press group px-5 py-2.5 sketch-border border-[var(--text-main)] bg-[var(--paper-color)] hover:bg-[var(--text-main)] hover:text-[var(--bg-color)] text-[var(--text-main)] font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>{lang === 'id' ? '[ LIHAT PROYEK → ]' : '[ VIEW PROJECTS → ]'}</span>
+            <span>{lang === 'id' ? '[ LIHAT PROYEK' : '[ VIEW PROJECTS'}</span>
+            <span aria-hidden="true" className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+            <span>]</span>
           </button>
           <button
             onClick={() => onNavigateSection?.('contact')}
             onMouseEnter={() => sound.playTextBlip()}
-            className="px-5 py-2 border border-[var(--border-color)] hover:border-[var(--text-main)] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition-all cursor-pointer"
+            className="press px-5 py-2.5 sketch-border hover:border-[var(--text-main)] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs flex items-center justify-center cursor-pointer"
           >
             <span>{lang === 'id' ? '[ HUBUNGI SAYA ]' : '[ CONTACT ME ]'}</span>
           </button>
+
+          {/* Slot 2: Tucked quietly near the button row */}
+          {heroScribble && heroScribble.slotIndex === 2 && (
+            <div className="absolute -bottom-8 right-2 sm:right-0">
+              <BlackScribble scribble={heroScribble} />
+            </div>
+          )}
         </div>
 
       </div>

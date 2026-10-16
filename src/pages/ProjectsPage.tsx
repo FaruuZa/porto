@@ -1,147 +1,178 @@
-import React, { useState, useEffect } from 'react';
-import { PROJECTS_DATA } from '../data/projectsData';
-import { PlaceholderIcon } from '../components/PlaceholderIcon';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useSanityProjects } from '../sanity/useSanityProjects';
 import { sound } from '../utils/audio';
 import { ThemeMode } from '../App';
-import { ArrowLeft, ExternalLink, Search, Volume2, VolumeX, Globe } from 'lucide-react';
-import { RedactedText } from '../components/RedactedText';
-import { blackSpaceManager, BlackSpaceState } from '../utils/blackSpaceState';
+import { ArrowLeft, ExternalLink, Search, X } from 'lucide-react';
 import { useLanguage } from '../utils/languageContext';
+import { OmoriPhotoCard } from '../components/OmoriPhotoCard';
+import { ProjectDetailModal } from '../components/ProjectDetailModal';
+import { ProjectItem } from '../types';
+import { getLocalizedText } from '../utils/projectHelpers';
+import { PlaceholderIcon } from '../components/PlaceholderIcon';
+import { urlFor } from '../sanity/client';
+import { OmoriMarkerScribble } from '../components/OmoriMarkerScribble';
 
 interface ProjectsPageProps {
   onBack: () => void;
   theme: ThemeMode;
-  onToggleTheme: () => void;
+  onToggleTheme?: () => void;
 }
 
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onBack,
   theme,
-  onToggleTheme,
 }) => {
-  const { lang, toggleLang } = useLanguage();
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const { lang } = useLanguage();
+  const { projects } = useSanityProjects();
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isMuted, setIsMuted] = useState(sound.getMuted());
+  const [selectedTech, setSelectedTech] = useState<string>('ALL');
+  const [detailProject, setDetailProject] = useState<ProjectItem | null>(null);
+  const [focusedCardIdx, setFocusedCardIdx] = useState<number>(-1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isBlackSpace = theme === 'black-space';
 
-  const [puzzleState, setPuzzleState] = useState<BlackSpaceState>(() =>
-    blackSpaceManager.getState()
-  );
+  // Extract all unique tech stack tags
+  const allTechTags = useMemo(() => {
+    const set = new Set<string>();
+    projects.forEach((p) => {
+      if (Array.isArray(p.techStack)) {
+        p.techStack.forEach((t) => set.add(t));
+      }
+    });
+    return ['ALL', ...Array.from(set).slice(0, 7)];
+  }, [projects]);
 
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      const title = getLocalizedText(project.title, lang).toLowerCase();
+      const desc = getLocalizedText(project.description, lang).toLowerCase();
+      const shortDesc = getLocalizedText(project.shortDescription, lang).toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
+      const stack = Array.isArray(project.techStack) ? project.techStack : [];
+
+      const matchesSearch = !query ||
+        title.includes(query) ||
+        desc.includes(query) ||
+        shortDesc.includes(query) ||
+        stack.some((tech) => tech.toLowerCase().includes(query));
+
+      const matchesTech = selectedTech === 'ALL' ||
+        stack.some((t) => t.toLowerCase() === selectedTech.toLowerCase());
+
+      return matchesSearch && matchesTech;
+    });
+  }, [projects, searchQuery, selectedTech, lang]);
+
+  // Reset keyboard focus when search or filter changes
   useEffect(() => {
-    const unsub = blackSpaceManager.subscribe((state) => setPuzzleState(state));
-    const unsubAudio = sound.subscribe((muted) => setIsMuted(muted));
-    return () => {
-      unsub();
-      unsubAudio();
-    };
-  }, []);
+    setFocusedCardIdx(-1);
+  }, [searchQuery, selectedTech]);
 
-  const handleToggleSound = () => {
-    const muted = sound.toggleMute();
-    setIsMuted(muted);
-  };
+  // Scroll focused card into view smoothly
+  useEffect(() => {
+    if (focusedCardIdx >= 0 && cardRefs.current[focusedCardIdx]) {
+      cardRefs.current[focusedCardIdx]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [focusedCardIdx]);
 
-  const handleThemeClick = () => {
-    if (isBlackSpace) {
-      if (!puzzleState.canWakeUp) {
-        sound.playLampuKedipSFX();
+  // Global keyboard shortcuts for /projects
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // If modal is actively open, let modal handle its own ESC / Left / Right
+      if (detailProject) return;
+
+      const isTyping = document.activeElement === searchInputRef.current;
+      const key = e.key.toLowerCase();
+
+      // Quick search shortcut: '/' when not already typing
+      if (key === '/' && !isTyping) {
+        e.preventDefault();
+        sound.playSelect();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-    }
-    sound.playSelect();
-    onToggleTheme();
-  };
 
-  const categories = ['ALL', 'Full-Stack Ecosystem', 'Web & Mobile App', 'Desktop POS Application', 'System Architecture'];
+      // Escape key behavior
+      if (key === 'escape') {
+        if (isTyping) {
+          e.preventDefault();
+          searchInputRef.current?.blur();
+        } else {
+          e.preventDefault();
+          sound.playSelect();
+          onBack();
+        }
+        return;
+      }
 
-  const filteredProjects = PROJECTS_DATA.filter((project) => {
-    const matchesCategory = selectedCategory === 'ALL' || project.category === selectedCategory;
-    const matchesSearch =
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.techStack.some((tech) => tech.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
+      // If user is typing in search input, don't intercept other keys
+      if (isTyping) return;
+
+      // Back to home shortcuts: 'b' or Backspace
+      if (key === 'b' || key === 'backspace') {
+        e.preventDefault();
+        sound.playSelect();
+        onBack();
+        return;
+      }
+
+      // Grid Card Navigation
+      if (key === 'arrowright' || key === 'd') {
+        e.preventDefault();
+        sound.playSelect();
+        setFocusedCardIdx((prev) => (prev < filteredProjects.length - 1 ? prev + 1 : 0));
+      } else if (key === 'arrowleft' || key === 'a') {
+        e.preventDefault();
+        sound.playSelect();
+        setFocusedCardIdx((prev) => (prev > 0 ? prev - 1 : filteredProjects.length - 1));
+      } else if (key === 'arrowdown' || key === 's') {
+        e.preventDefault();
+        sound.playSelect();
+        const cols = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+        setFocusedCardIdx((prev) => Math.min(filteredProjects.length - 1, (prev < 0 ? 0 : prev) + cols));
+      } else if (key === 'arrowup' || key === 'w') {
+        e.preventDefault();
+        sound.playSelect();
+        const cols = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+        setFocusedCardIdx((prev) => Math.max(0, (prev < 0 ? 0 : prev) - cols));
+      } else if (key === 'enter' || key === ' ' || key === 'i') {
+        if (focusedCardIdx >= 0 && focusedCardIdx < filteredProjects.length) {
+          e.preventDefault();
+          sound.playSelect();
+          setDetailProject(filteredProjects[focusedCardIdx]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [detailProject, filteredProjects, focusedCardIdx, onBack]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-main)] font-mono transition-colors duration-500">
+    <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-main)] font-mono transition-colors duration-500 pt-16 sm:pt-20 select-none">
       
-      {/* Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-[var(--bg-color)] border-b border-[var(--border-color)] transition-colors select-none">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between text-xs">
-          
-          {/* Back Button */}
+      {/* Main Content Container */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        
+        {/* Back Navigation Breadcrumb */}
+        <div className="mb-6">
           <button
             onClick={() => {
               sound.playSelect();
               onBack();
             }}
             onMouseEnter={() => sound.playTextBlip()}
-            className="flex items-center gap-2 px-3 py-1.5 sketch-border hover:bg-[var(--text-main)] hover:text-[var(--bg-color)] transition-all cursor-pointer font-bold"
+            className="press inline-flex items-center gap-2 px-3.5 py-1.5 border border-[var(--border-color)] hover:bg-[var(--text-main)] hover:text-[var(--bg-color)] transition-all cursor-pointer font-bold text-xs"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={13} />
             <span>{lang === 'id' ? '[ KEMBALI KE BERANDA ]' : '[ BACK TO HOME ]'}</span>
           </button>
-
-          {/* Controls */}
-          <div className="flex items-center gap-2.5">
-            {/* Language Toggle */}
-            <button
-              onClick={() => {
-                sound.playSelect();
-                toggleLang();
-              }}
-              onMouseEnter={() => sound.playTextBlip()}
-              className="px-2 py-1 sketch-border font-bold text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--paper-color)] transition-all flex items-center gap-1 cursor-pointer"
-              title="Ganti Bahasa / Switch Language"
-            >
-              <Globe size={12} />
-              <span>{lang.toUpperCase()}</span>
-            </button>
-
-            {/* Unified Audio Toggle */}
-            <button
-              onClick={handleToggleSound}
-              onMouseEnter={() => sound.playTextBlip()}
-              className={`px-2.5 py-1 sketch-border font-bold text-[11px] transition-all flex items-center gap-1.5 cursor-pointer ${
-                !isMuted
-                  ? 'bg-[var(--paper-color)] text-[var(--accent-red)] border-[var(--accent-red)]'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--paper-color)]'
-              }`}
-            >
-              {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
-              <span className="hidden sm:inline">{isMuted ? 'MUTE' : 'SOUND'}</span>
-            </button>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={handleThemeClick}
-              onMouseEnter={() => sound.playTextBlip()}
-              className={`px-2.5 py-1 sketch-border text-[11px] transition-all cursor-pointer ${
-                isBlackSpace
-                  ? puzzleState.canWakeUp
-                    ? 'bg-red-950 border-red-500 text-red-200 font-bold'
-                    : 'bg-[var(--paper-color)] text-red-700 border-red-900 cursor-not-allowed opacity-80'
-                  : 'text-[var(--text-main)] hover:bg-[var(--paper-color)]'
-              }`}
-            >
-              {isBlackSpace
-                ? puzzleState.canWakeUp
-                  ? '[ WAKE UP ]'
-                  : '[ ??? ]'
-                : theme === 'light'
-                ? '[ DARK ]'
-                : '[ WHITE ]'}
-            </button>
-          </div>
-
         </div>
-      </header>
-
-      {/* Main Content Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         
         {/* Page Banner */}
         <div className="border-b border-[var(--border-color)] pb-6 mb-8">
@@ -155,51 +186,51 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
           <h1 className="text-2xl sm:text-4xl font-bold text-[var(--text-main)] mt-1">
             {isBlackSpace ? (
               <>
-                <span className="line-through decoration-[#8b0000] text-[#fca5a5]/60 mr-2">
+                <span className="line-through opacity-40 mr-2">
                   {lang === 'id' ? 'Arsip Lengkap' : 'Complete Archive'}
                 </span>
-                <span className="text-[#ff0033]">
+                <span className="text-[var(--text-main)] font-mono">
                   {lang === 'id' ? 'Repositori Terdistorsi' : 'Corrupted Repositories'}
                 </span>
               </>
             ) : (
-              lang === 'id' ? 'Arsip Lengkap Portofolio Rekayasa Perangkat Lunak' : 'Software Systems Complete Archive'
+              lang === 'id' ? 'Arsip Lengkap Portofolio Proyek' : 'Software Systems Complete Archive'
             )}
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 font-sans max-w-2xl">
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 font-sans max-w-2xl leading-relaxed">
             {isBlackSpace ? (
-              <span className="text-[#fca5a5]/80 italic">
+              <span className="text-[var(--text-muted)] italic">
                 {lang === 'id'
-                  ? '"Repositori kode terdistorsi oleh Black Space. Temukan anomali tersembunyi."'
-                  : '"Codebases distorted by the Black Space anomaly. Find the missing fragment hidden among the repositories."'}
+                  ? '"Repositori kode terdistorsi dalam kegelapan."'
+                  : '"Codebases and repositories distorted in the dark."'}
               </span>
             ) : (
               lang === 'id'
-                ? 'Koleksi lengkap platform ERP klinik terintegrasi, platform pemesanan multi-channel, dan driver kasir barcode desktop.'
-                : 'Complete collection of clinical ERP platforms, retail order systems, and desktop inventory drivers.'
+                ? 'Koleksi dokumentasi proyek rekayasa perangkat lunak, sistem ERP terpadu, dan aplikasi mobile.'
+                : 'Complete collection of clinical ERP platforms, retail order systems, and technical software applications.'
             )}
           </p>
         </div>
 
-        {/* Filter Tabs & Search Bar */}
+        {/* Filter Tags & Search Bar */}
         <div className="mb-8 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
           
-          {/* Categories */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
+          {/* Tech Tag Pills */}
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            {allTechTags.map((tech) => (
               <button
-                key={cat}
+                key={tech}
                 onClick={() => {
                   sound.playTextBlip();
-                  setSelectedCategory(cat);
+                  setSelectedTech(tech);
                 }}
-                className={`px-3 py-1.5 text-xs sketch-border transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-[var(--text-main)] text-[var(--bg-color)] font-bold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--paper-color)]'
+                className={`px-3 py-1 text-xs border transition-all cursor-pointer ${
+                  selectedTech === tech
+                    ? 'border-[var(--text-main)] bg-[var(--text-main)] text-[var(--bg-color)] font-bold'
+                    : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--paper-color)]'
                 }`}
               >
-                {cat === 'ALL' ? (lang === 'id' ? 'SEMUA' : 'ALL') : cat}
+                {tech === 'ALL' ? (lang === 'id' ? 'SEMUA' : 'ALL') : tech}
               </button>
             ))}
           </div>
@@ -208,156 +239,105 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
           <div className="relative">
             <Search size={14} className="absolute left-3 top-3 text-[var(--text-muted)] pointer-events-none" />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={lang === 'id' ? "Cari teknologi atau nama sistem..." : "Search by technology or system name..."}
-              className="pl-9 pr-4 py-2 bg-[var(--paper-color)] sketch-border text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-red)] w-full md:w-72"
+              onFocus={() => {
+                searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
+              placeholder={lang === 'id' ? "Cari judul atau teknologi... [/]" : "Search title or tech stack... [/]"}
+              className="pl-9 pr-4 py-2 bg-[var(--paper-color)] border border-[var(--border-color)] text-xs text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-red)] w-full md:w-72"
             />
           </div>
 
         </div>
 
         {/* Project Count Status */}
-        <div className="text-xs text-[var(--text-muted)] mb-6">
-          {lang === 'id' ? (
-            <>Menampilkan <strong className="text-[var(--text-main)]">{filteredProjects.length}</strong> dari <strong className="text-[var(--text-main)]">{PROJECTS_DATA.length}</strong> sistem</>
-          ) : (
-            <>Showing <strong className="text-[var(--text-main)]">{filteredProjects.length}</strong> of <strong className="text-[var(--text-main)]">{PROJECTS_DATA.length}</strong> systems</>
-          )}
+        <div className="text-xs text-[var(--text-muted)] mb-6 font-mono flex items-center justify-between">
+          <span>
+            {lang === 'id' ? (
+              <>Menampilkan <strong className="text-[var(--text-main)]">{filteredProjects.length}</strong> dari <strong className="text-[var(--text-main)]">{projects.length}</strong> sistem</>
+            ) : (
+              <>Showing <strong className="text-[var(--text-main)]">{filteredProjects.length}</strong> of <strong className="text-[var(--text-main)]">{projects.length}</strong> systems</>
+            )}
+          </span>
+          <span className="text-[10px] text-[var(--text-muted)] hidden sm:inline">
+            {lang === 'id' ? '[ TEKAN INFO UNTUK DETAIL LENGKAP ]' : '[ CLICK INFO FOR FULL DETAILS ]'}
+          </span>
         </div>
 
-        {/* Projects Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredProjects.map((project, idx) => {
-            const isAnomalyTarget =
-              isBlackSpace && idx === puzzleState.spawnLocations.projectCardIndex;
-
-            return (
+        {/* PROJECTS GALLERY GRID - Equal Height with Aligned Footers */}
+        {filteredProjects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+            {filteredProjects.map((project, idx) => (
               <div
                 key={project.id}
-                onMouseEnter={() => sound.playTextBlip()}
-                className="sketch-border p-6 bg-[var(--paper-color)] hover:border-[var(--text-main)] transition-colors flex flex-col justify-between"
+                ref={(el) => (cardRefs.current[idx] = el)}
+                onClick={() => setFocusedCardIdx(idx)}
+                className={`h-full transition-all duration-200 rounded-xs ${
+                  focusedCardIdx === idx
+                    ? 'ring-2 ring-[var(--accent-red)] ring-offset-2 ring-offset-[var(--bg-color)] shadow-lg'
+                    : ''
+                }`}
               >
-                <div>
-                  {/* Header info */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-[var(--accent-red)]">
-                        [ {isBlackSpace ? 'ANOMALY' : project.category.toUpperCase()} ]
-                      </span>
-                      {project.badge && (
-                        <span className="text-[9px] px-2 py-0.5 rounded bg-red-950/40 text-red-400 border border-red-800">
-                          {isBlackSpace ? '???' : project.badge}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      #0{idx + 1} {project.year ? `• ${project.year}` : ''}
-                    </span>
-                  </div>
-
-                  {/* Title & Flavor quote */}
-                  <h2 className="text-lg sm:text-xl font-bold text-[var(--text-main)] mb-1">
-                    {isBlackSpace && idx === 1 ? (
-                      <span className="line-through decoration-[#8b0000] text-[#fca5a5]/70 mr-1">{project.title}</span>
-                    ) : (
-                      project.title
-                    )}
-                  </h2>
-                  <p className="text-xs text-[var(--text-muted)] italic mb-4">
-                    {project.quote}
-                  </p>
-
-                  {/* Description or Anomaly Target */}
-                  <div className="text-xs sm:text-sm text-[var(--text-main)]/90 font-sans leading-relaxed mb-6">
-                    {isAnomalyTarget ? (
-                      <div className="p-3 sketch-border bg-red-950/20 my-2">
-                        <RedactedText
-                          theme={theme}
-                          anomalyId="anomaly-project-page"
-                          originalText="A dark presence lurks inside the project build cache."
-                          corruptedText="GIT_COMMIT_ANOMALY_#03"
-                        />
-                      </div>
-                    ) : (
-                      <p>{project.description}</p>
-                    )}
-                  </div>
-
-                  {/* Features List */}
-                  <div className="space-y-1.5 mb-6">
-                    <div className="text-[10px] text-[var(--accent-red)] uppercase font-bold tracking-wider mb-2">
-                      &gt; {lang === 'id' ? 'FITUR UTAMA SISTEM' : 'KEY SYSTEM CAPABILITIES'}
-                    </div>
-                    {project.features.map((feat, fIdx) => (
-                      <div key={fIdx} className="text-xs flex items-start gap-2">
-                        <span className="text-[var(--accent-red)] font-bold">»</span>
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Metrics Box */}
-                  <div className="grid grid-cols-3 gap-2 py-3 border-t border-[var(--border-color)] text-center text-[10px] font-mono mb-6">
-                    {project.stats.map((stat, sIdx) => (
-                      <div key={sIdx} className="bg-[var(--bg-color)]/60 p-2 sketch-border">
-                        <div className="text-[var(--text-muted)]">{stat.label}</div>
-                        <div className="font-bold text-[var(--text-main)] mt-0.5 truncate">{stat.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tech Stack & Links Footer */}
-                <div className="pt-4 border-t border-[var(--border-color)] flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap gap-1.5">
-                    {project.techStack.map((tech) => (
-                      <span
-                        key={tech}
-                        onMouseEnter={() => sound.playTextBlip()}
-                        className="px-2 py-0.5 text-[10px] sketch-border hover:bg-[var(--text-main)] hover:text-[var(--bg-color)] transition-all flex items-center gap-1"
-                      >
-                        <PlaceholderIcon name={tech.toLowerCase()} size={11} />
-                        <span>{tech}</span>
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {project.links?.github && (
-                      <a
-                        href={project.links.github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => sound.playSelect()}
-                        className="p-1.5 sketch-border hover:bg-[var(--text-main)] hover:text-[var(--bg-color)] transition-colors flex items-center gap-1 text-xs"
-                      >
-                        <PlaceholderIcon name="git" size={12} />
-                        <span>REPO</span>
-                      </a>
-                    )}
-                    {project.links?.demo && (
-                      <a
-                        href={project.links.demo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => sound.playSelect()}
-                        className="px-3 py-1.5 sketch-border bg-[var(--text-main)] text-[var(--bg-color)] font-bold hover:opacity-90 transition-opacity flex items-center gap-1 text-xs"
-                      >
-                        <ExternalLink size={12} />
-                        <span>DEMO</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
-
+                <OmoriPhotoCard
+                  project={project}
+                  index={idx}
+                  isBlackSpace={isBlackSpace}
+                  layout="grid"
+                  isSelected={focusedCardIdx === idx}
+                  onOpenDetails={() => {
+                    sound.playSelect();
+                    setDetailProject(project);
+                  }}
+                />
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border border-[var(--border-color)] p-10 bg-[var(--paper-color)] text-center my-8">
+            <p className="text-sm text-[var(--text-muted)] font-mono">
+              {lang === 'id'
+                ? '[ TIDAK ADA PROYEK YANG COCOK DENGAN PENCARIAN ]'
+                : '[ NO PROJECTS MATCHING SEARCH CRITERIA ]'}
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedTech('ALL');
+              }}
+              className="mt-4 px-3 py-1.5 border border-[var(--border-color)] text-xs text-[var(--text-main)] hover:bg-[var(--text-main)] hover:text-[var(--bg-color)]"
+            >
+              {lang === 'id' ? '[ RESET FILTER ]' : '[ RESET FILTERS ]'}
+            </button>
+          </div>
+        )}
 
       </main>
+
+      {/* Bottom-Right Keyboard Controls HUD (PC/Desktop Only) */}
+      <div
+        className="hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2.5 px-3 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] shadow-xl select-none"
+        title="Keyboard Controls"
+      >
+        <span className="w-2 h-2 bg-[var(--accent-red)] inline-block" />
+        <span>
+          <kbd className="font-bold text-[var(--accent-red)]">[ESC / B]</kbd> {lang === 'id' ? 'Kembali' : 'Back'} <span className="opacity-40">|</span>{' '}
+          <kbd className="font-bold text-[var(--accent-red)]">[W/S/A/D / Panah]</kbd> {lang === 'id' ? 'Pilih' : 'Select'} <span className="opacity-40">|</span>{' '}
+          <kbd className="font-bold text-[var(--accent-red)]">[ENTER / I]</kbd> {lang === 'id' ? 'Buka Info' : 'Open Info'} <span className="opacity-40">|</span>{' '}
+          <kbd className="font-bold text-[var(--accent-red)]">[/]</kbd> {lang === 'id' ? 'Cari' : 'Search'}
+        </span>
+      </div>
+
+      {/* Reusable OMORI DIALOGUE-BOX DETAIL & GALLERY MODAL */}
+      {detailProject && (
+        <ProjectDetailModal
+          project={detailProject}
+          onClose={() => setDetailProject(null)}
+          isBlackSpace={isBlackSpace}
+        />
+      )}
 
     </div>
   );

@@ -21,7 +21,6 @@ export const RedactedText: React.FC<RedactedTextProps> = ({
   const isBlackSpace = theme === 'black-space';
   const [isUncovered, setIsUncovered] = useState(false);
 
-  // Check if this anomaly was already uncovered in this session
   useEffect(() => {
     if (anomalyId && blackSpaceManager.hasFound(anomalyId)) {
       setIsUncovered(true);
@@ -40,7 +39,7 @@ export const RedactedText: React.FC<RedactedTextProps> = ({
       sound.playHit();
       setIsUncovered(true);
       if (anomalyId) {
-        blackSpaceManager.uncoverAnomaly(anomalyId);
+        blackSpaceManager.collectScribble(anomalyId);
       }
     }
   };
@@ -48,7 +47,7 @@ export const RedactedText: React.FC<RedactedTextProps> = ({
   if (isUncovered) {
     return (
       <span
-        className={`line-through decoration-[#ff0033] decoration-2 text-[#8b0000] font-bold px-0.5 select-none transition-colors ${className}`}
+        className={`line-through decoration-[#ef4444] decoration-2 text-[#8b0000] font-bold px-0.5 select-none transition-colors ${className}`}
       >
         {corruptedText || originalText}
       </span>
@@ -59,11 +58,10 @@ export const RedactedText: React.FC<RedactedTextProps> = ({
     <span
       onClick={handleCut}
       onMouseEnter={() => sound.playTextBlip()}
-      className={`inline-block align-middle cursor-pointer bg-[#000000] text-transparent hover:text-[#ff0033] border border-[#5c111a] px-2 py-0.5 mx-0.5 rounded-[1px] select-none transition-transform hover:scale-105 active:scale-95 group relative ${className}`}
+      className={`inline-block align-middle cursor-pointer bg-[#000000] text-transparent hover:text-[#ef4444] border border-[#5c111a] px-2 py-0.5 mx-0.5 rounded-[1px] select-none transition-transform hover:scale-105 active:scale-95 group relative ${className}`}
       title="[???]"
     >
-      {/* Blackout censor block with knife hover reaction */}
-      <span className="font-mono tracking-widest text-[#150206] group-hover:text-[#ff0033] text-xs">
+      <span className="font-mono tracking-widest text-[#150206] group-hover:text-[#ef4444] text-xs">
         ████████
       </span>
     </span>

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { SKILLS } from '../data/portfolioData';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PlaceholderIcon } from './PlaceholderIcon';
 import { sound } from '../utils/audio';
 import { ThemeMode } from '../App';
-import { RedactedText } from './RedactedText';
-import { blackSpaceManager, BlackSpaceState } from '../utils/blackSpaceState';
+import { blackSpaceManager, BlackSpaceState, ScribbleLocation } from '../utils/blackSpaceState';
 import { useLanguage } from '../utils/languageContext';
+import { BlackScribble } from './BlackScribble';
+import { useSanityProfile } from '../sanity/useSanityProfile';
 
 interface SkillsSectionProps {
   theme?: ThemeMode;
@@ -13,6 +13,7 @@ interface SkillsSectionProps {
 
 export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'dark' }) => {
   const { lang } = useLanguage();
+  const { skills } = useSanityProfile();
   const isBlackSpace = theme === 'black-space';
   const [puzzleState, setPuzzleState] = useState<BlackSpaceState>(() =>
     blackSpaceManager.getState()
@@ -23,40 +24,44 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'dark' }) 
     return () => unsub();
   }, []);
 
-  const shouldSpawnAnomalyHere =
-    isBlackSpace && puzzleState.spawnLocations.homeSection === 'skills';
+  const skillsScribble: ScribbleLocation | undefined = useMemo(() => {
+    if (!isBlackSpace) return undefined;
+    return puzzleState.scribbles.find((s) => s.section === 'skills');
+  }, [isBlackSpace, puzzleState.scribbles]);
 
   return (
     <section
       id="skills"
-      className="h-[100dvh] md:h-screen w-full flex flex-col justify-center items-center overflow-y-auto md:overflow-hidden px-4 sm:px-6 font-mono select-none pt-12 pb-6 md:py-0"
+      className="section-shell font-mono"
     >
-      <div className="w-full max-w-3xl flex flex-col justify-center my-auto">
+      <div className="section-inner relative">
         {/* Section Header */}
-        <div className="border-b border-[var(--border-color)] pb-3 mb-4">
-          <span data-glitch="true" className="text-xs text-[var(--accent-red)] uppercase tracking-wider font-bold">
-            03. {lang === 'id' ? 'KEAHLIAN' : 'SKILLS'} {isBlackSpace ? '// CORRUPTED' : lang === 'id' ? '// TEKNOLOGI & TOOLS' : '// TECH STACK'}
-          </span>
-          <h2 data-glitch="true" className="text-xl sm:text-2xl font-bold text-[var(--text-main)] mt-0.5">
+        <div className="section-header relative">
+          <div className="flex items-center gap-2">
+            <span data-no-glitch="true" className="text-xs text-[var(--accent-red)] uppercase tracking-wider font-bold">
+              03. {lang === 'id' ? 'KEAHLIAN' : 'SKILLS'} {isBlackSpace ? '// CORRUPTED' : lang === 'id' ? '// TEKNOLOGI & TOOLS' : '// TECH STACK'}
+            </span>
+
+            {/* Slot 0: In header next to badge */}
+            {skillsScribble && skillsScribble.slotIndex === 0 && (
+              <BlackScribble scribble={skillsScribble} className="ml-1" />
+            )}
+          </div>
+
+          <h2 data-no-glitch="true" className="text-xl sm:text-2xl font-bold text-[var(--text-main)] mt-0.5">
             {isBlackSpace
-              ? 'Forbidden Toolset'
+              ? 'Corrupted Tech Stack'
               : lang === 'id'
               ? 'Keahlian & Penguasaan Teknologi'
               : 'Skills & Technologies'}
           </h2>
           <div className="text-xs text-[var(--text-muted)] mt-0.5 font-sans">
             {isBlackSpace ? (
-              <div className="text-[#fca5a5]/80">
-                <span>Memory fragments scattered across the digital room.{' '}</span>
-                {shouldSpawnAnomalyHere && (
-                  <RedactedText
-                    theme={theme}
-                    anomalyId="anomaly-skills"
-                    originalText="A strange artifact rests among the code files."
-                    corruptedText="REDACTED_TOOL_#03"
-                  />
-                )}
-              </div>
+              <span className="text-[var(--text-muted)] italic">
+                {lang === 'id'
+                  ? 'Kompilasi perkakas dan repositori terdistorsi. Sesuatu hilang...'
+                  : 'Distorted tools and code environments. Something is missing...'}
+              </span>
             ) : (
               lang === 'id'
                 ? 'Bahasa pemrograman, backend framework, basis data relasional, dan mobile development.'
@@ -66,13 +71,20 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'dark' }) 
         </div>
 
         {/* Skills Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
-          {SKILLS.map((skill) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 relative">
+          {skills.map((skill, idx) => (
             <div
-              key={skill.name}
+              key={skill._id || skill.name}
               onMouseEnter={() => sound.playTextBlip()}
-              className="sketch-border p-2.5 sm:p-3 bg-[var(--paper-color)] hover:border-[var(--text-main)] hover:-translate-y-0.5 transition-all duration-150 flex flex-col justify-between group"
+              className="sketch-border sketch-card p-2.5 sm:p-3 bg-[var(--paper-color)] flex flex-col justify-between group relative"
             >
+              {/* Slot 1: Nestled inside first card */}
+              {skillsScribble && skillsScribble.slotIndex === 1 && idx === 0 && (
+                <div className="absolute -top-3 -right-2 z-10">
+                  <BlackScribble scribble={skillsScribble} />
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider">
                   [{skill.category}]
@@ -98,6 +110,13 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'dark' }) 
               </div>
             </div>
           ))}
+
+          {/* Slot 2: Tucked at bottom right of grid */}
+          {skillsScribble && skillsScribble.slotIndex === 2 && (
+            <div className="absolute -bottom-7 right-2">
+              <BlackScribble scribble={skillsScribble} />
+            </div>
+          )}
         </div>
       </div>
     </section>

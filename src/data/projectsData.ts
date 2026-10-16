@@ -1,207 +1,165 @@
-export interface ProjectDetail {
-  id: string;
-  slug: string;
-  title: string;
-  tagline: string;
-  type: string;
-  category: 'Full-Stack Ecosystem' | 'Web & Mobile App' | 'Desktop POS Application' | 'Interactive Web' | 'System Architecture';
-  quote: string;
-  flavorQuote?: string;
-  description: string;
-  techStack: string[];
-  features: string[];
-  stats: { label: string; value: string }[];
-  links?: {
-    demo?: string;
-    github?: string;
-    docs?: string;
-  };
-  featured: boolean;
-  year?: string;
-  badge?: string;
-}
+import { ProjectItem } from '../types';
+
+export type ProjectDetail = ProjectItem;
 
 /**
- * Clean separated project data structure prepared for CMS integration / headless API endpoints.
+ * Clean separated project data structure prepared for Sanity CMS integration.
+ * Only Qlinica and RahmatBakery are featured; default empty links for others.
  */
 export const PROJECTS_DATA: ProjectDetail[] = [
   {
     id: "qlinica",
     slug: "qlinica-clinical-erp-attendance",
-    title: "Qlinica — Clinical ERP & Digital Attendance Ecosystem",
-    tagline: "Integrated Web & Mobile Clinical Management with Real-time Sync",
-    type: "Full-Stack Ecosystem",
-    category: "Full-Stack Ecosystem",
-    quote: "\"A lifeline between medical staff and patients. It feels sturdy and dependable.\"",
-    flavorQuote: "\"A lifeline between medical staff and patients. It feels sturdy and dependable.\"",
-    description: "Ekosistem manajemen klinik terpadu berbasis web yang tersinkronisasi langsung dengan aplikasi presensi mobile. Mengotomatisasi alur pendaftaran pasien rawat jalan, sistem antrean terpusat, jadwal dokter spesialis, serta inventaris modul apotek dan resep obat.",
+    title: {
+      en: "Qlinica — Clinical ERP & Attendance Ecosystem",
+      id: "Qlinica — ERP Klinik & Presensi Digital Terpadu",
+    },
+    date: "2024",
+    shortDescription: {
+      en: "Integrated clinical management web app synchronized in real-time with mobile attendance.",
+      id: "Ekosistem manajemen klinik web terpadu yang tersinkronisasi langsung dengan aplikasi presensi mobile.",
+    },
+    description: {
+      en: "Integrated clinical management web ecosystem synchronized directly with a mobile attendance app. Automates outpatient registration, centralized queueing, specialist scheduling, and pharmacy inventory control.",
+      id: "Ekosistem manajemen klinik terpadu berbasis web yang tersinkronisasi langsung dengan aplikasi presensi mobile. Mengotomatisasi alur pendaftaran pasien rawat jalan, sistem antrean terpusat, jadwal dokter spesialis, serta inventaris modul apotek dan resep obat.",
+    },
     techStack: ["Laravel", "Flutter", "PostgreSQL", "REST API", "Tailwind CSS"],
-    features: [
-      "Pendaftaran Pasien Online & Antrean Terpusat",
-      "Sinkronisasi Presensi Karyawan & Medis Mobile",
-      "Jadwal Dokter Dinamis & Manajemen Janji Temu",
-      "Modul Apotek & Kontrol Stok Obat Terintegrasi"
-    ],
-    stats: [
-      { label: "Sync Latency", value: "< 250ms" },
-      { label: "Architecture", value: "RESTful + Relational" },
-      { label: "Target", value: "Web & Android" }
-    ],
     links: {
-      github: "https://github.com/faza/qlinica-clinical-erp",
-      demo: "https://qlinica.demo.app"
+      demo: "https://qlinica.demo.app",
+      repo: "https://github.com/faza/qlinica-clinical-erp",
     },
     featured: true,
-    year: "2024",
-    badge: "FEATURED"
+    category: "Full-Stack Ecosystem",
   },
   {
     id: "rahmat-bakery",
     slug: "rahmat-bakery-multichannel-commerce",
-    title: "RahmatBakery — Multi-Channel Ordering Platform",
-    tagline: "Synchronized Web & Mobile Retail Commerce",
-    type: "Web & Mobile App",
-    category: "Web & Mobile App",
-    quote: "\"Freshly baked code. Warms the inventory and eases transactions.\"",
-    flavorQuote: "\"Freshly baked code. Warms the inventory and eases transactions.\"",
-    description: "Platform pemesanan toko kue multi-platform (web & mobile). Memungkinkan pelanggan memilih katalog dan melakukan reservasi transaksi pesanan, sementara pemilik toko memantau dashboard status order dan laporan penjualan secara berkala.",
+    title: {
+      en: "RahmatBakery — Multi-Channel Retail Ordering",
+      id: "RahmatBakery — Platform Pemesanan Multi-Channel",
+    },
+    date: "2024",
+    shortDescription: {
+      en: "Synchronized web & native Android retail platform for product catalog and order tracking.",
+      id: "Platform pemesanan toko roti multi-platform dengan katalog web dan aplikasi Android.",
+    },
+    description: {
+      en: "Multi-platform bakery ordering platform (web & mobile). Customers browse catalogs and reserve orders, while shop administrators monitor order workflows and sales reports through an integrated backend.",
+      id: "Platform pemesanan toko kue multi-platform (web & mobile). Memungkinkan pelanggan memilih katalog dan melakukan reservasi transaksi pesanan, sementara pemilik toko memantau dashboard status order dan laporan penjualan secara berkala.",
+    },
     techStack: ["PHP", "Kotlin", "PostgreSQL", "Android SDK"],
-    features: [
-      "Katalog Produk & Keranjang Pesanan Interaktif",
-      "Aplikasi Android Native Pelanggan dengan Kotlin",
-      "Dashboard Admin Manajemen Status Pesanan",
-      "Skema Relasional Database Multi-Table PostgreSQL"
-    ],
-    stats: [
-      { label: "Platform", value: "Web & Mobile" },
-      { label: "DB Engine", value: "PostgreSQL" },
-      { label: "Integration", value: "API Backend" }
-    ],
     links: {
-      github: "https://github.com/faza/rahmat-bakery-system"
+      repo: "https://github.com/faza/rahmat-bakery-system",
     },
     featured: true,
-    year: "2024",
-    badge: "MOBILE & WEB"
+    category: "Web & Mobile App",
+  },
+  {
+    id: "card-clash-inferior-gambit",
+    slug: "card-clash-inferior-gambit",
+    title: {
+      en: "Card Clash: Inferior Gambit (Prototype)",
+      id: "Card Clash: Inferior Gambit (Prototipe)",
+    },
+    date: "2024",
+    shortDescription: {
+      en: "Simultaneous RPS card battle prototype where being inferior triggers tide-turning effects.",
+      id: "Eksperimen card battle simultan batu-gunting-kertas dengan mekanik pembalik kekalahan.",
+    },
+    description: {
+      en: "An experimental card battle game prototype. Players simultaneously choose cards revealed at the same time to determine Superior, Neutral, or Inferior state. Uniquely, losing a clash triggers powerful comeback card effects.",
+      id: "Eksperimen game card battle yang dibikin saat eksplorasi logika. Kedua pemain memilih kartu bersamaan lalu di-reveal serentak untuk menentukan status Superior, Neutral, atau Inferior. Menariknya, status inferior justru memicu efek pembalik keadaan yang kuat.",
+    },
+    techStack: ["Game Logic Design", "Simultaneous RPS", "TypeScript", "Interactive Web"],
+    links: {},
+    featured: false,
+    category: "Interactive Web",
   },
   {
     id: "kitchen-shell",
     slug: "kitchenshell-pos-barcode-checkout",
-    title: "KitchenShell POS — Desktop Barcode Checkout",
-    tagline: "High-Speed Desktop Point of Sale & Inventory Tracker",
-    type: "Desktop POS Application",
-    category: "Desktop POS Application",
-    quote: "\"An automated register with instant barcode recognition. No more manual mistakes.\"",
-    flavorQuote: "\"An automated register with instant barcode recognition. No more manual mistakes.\"",
-    description: "Aplikasi desktop kasir Point of Sale (POS) cepat yang dilengkapi integrasi pemindaian kartu barcode untuk mempercepat proses antrean kasir serta otomasi pencatatan inventaris barang berbasis basis data MySQL.",
-    techStack: ["Java", "MySQL", "Java Swing / Desktop", "Barcode Scanner Driver"],
-    features: [
-      "Pemindaian Kartu Barcode Kasir Instan",
-      "Kalkulasi Transaksi Cepat & Struk Penjualan",
-      "Manajemen Stok Barang & Peringatan Stok Rendah",
-      "Laporan Rekapitulasi Kasir Harian"
-    ],
-    stats: [
-      { label: "Speed", value: "Instant Barcode Scan" },
-      { label: "Target", value: "Desktop Environment" },
-      { label: "Storage", value: "MySQL Relational" }
-    ],
-    links: {
-      github: "https://github.com/faza/kitchenshell-pos"
+    title: {
+      en: "KitchenShell POS — Desktop Barcode Checkout",
+      id: "KitchenShell POS — Kasir Barcode Desktop",
     },
-    featured: true,
-    year: "2023",
-    badge: "DESKTOP ENGINE"
+    date: "2023",
+    shortDescription: {
+      en: "High-speed desktop Point of Sale software with instant barcode scanning and relational inventory.",
+      id: "Aplikasi desktop kasir Point of Sale cepat dengan pemindai barcode instan dan otomasi stok MySQL.",
+    },
+    description: {
+      en: "High-speed desktop Point of Sale (POS) software equipped with barcode card scan integration to accelerate queue throughput and automate real-time inventory management with relational MySQL storage.",
+      id: "Aplikasi desktop kasir Point of Sale (POS) cepat yang dilengkapi integrasi pemindaian kartu barcode untuk mempercepat proses antrean kasir serta otomasi pencatatan inventaris barang berbasis basis data MySQL.",
+    },
+    techStack: ["Java", "MySQL", "Java Swing", "Barcode Driver"],
+    links: {},
+    featured: false,
+    category: "Desktop POS Application",
   },
   {
     id: "omori-engine",
     slug: "omori-white-space-interactive-portfolio",
-    title: "White Space Portfolio Engine & Soundscape",
-    tagline: "Atmospheric Psychological RPG Web Interface",
-    type: "Interactive Web",
-    category: "Interactive Web",
-    quote: "\"A monochrome safe haven. Waiting for something to happen?\"",
-    flavorQuote: "\"A monochrome safe haven. Waiting for something to happen?\"",
-    description: "Sistem antarmuka portofolio bertema Omori White Space & Black Space dengan Web Audio API Procedural Synthesizer, physical pendulum physics, keyboard arcade navigation, dan dynamic aesthetic glitch system.",
-    techStack: ["React 18", "TypeScript", "Tailwind CSS", "Web Audio API", "Vite"],
-    features: [
-      "Web Audio API Synthesizer (Zero-Asset Click & Horror Drones)",
-      "Interactive Ceiling Pendulum Physics Simulator",
-      "Arcade WASD Keyboard Navigation & Snapping",
-      "Black Space Psychological Glitch Mode"
-    ],
-    stats: [
-      { label: "Sound", value: "Procedural Web Audio" },
-      { label: "Control", value: "WASD + Touch" },
-      { label: "Framework", value: "React + TS" }
-    ],
-    links: {
-      github: "https://github.com/faza/omori-portfolio-engine",
-      demo: "#"
+    title: {
+      en: "White Space Portfolio Engine & Soundscape",
+      id: "White Space Engine & Audio Procedural",
     },
-    featured: true,
-    year: "2024",
-    badge: "AUDIO & ENGINE"
+    date: "2024",
+    shortDescription: {
+      en: "Atmospheric portfolio interface inspired by Omori aesthetics with custom procedural Web Audio API.",
+      id: "Antarmuka portofolio atmosferik berakar dari estetika Omori dengan synthesizer Web Audio API.",
+    },
+    description: {
+      en: "Personal interactive portfolio engine themed after Omori White Space & Black Space. Employs zero-asset procedural audio generation, physics pendulums, and retro keyboard controls.",
+      id: "Sistem antarmuka portofolio bertema Omori White Space & Black Space dengan Web Audio API Procedural Synthesizer, physical pendulum physics, keyboard arcade navigation, dan dynamic aesthetic glitch system.",
+    },
+    techStack: ["React 18", "TypeScript", "Tailwind CSS", "Web Audio API", "Vite"],
+    links: {},
+    featured: false,
+    category: "Interactive Web",
   },
   {
     id: "eduquest-lms",
     slug: "eduquest-gamified-learning-portal",
-    title: "EduQuest — Gamified Student Evaluation Portal",
-    tagline: "Progressive Web Application for Academic Milestones",
-    type: "Full-Stack Ecosystem",
-    category: "Full-Stack Ecosystem",
-    quote: "\"Level up your learning. Quests, badges, and real-time grading.\"",
-    flavorQuote: "\"Level up your learning. Quests, badges, and real-time grading.\"",
-    description: "Sistem manajemen pembelajaran (LMS) berbasis gamifikasi untuk meningkatkan keterlibatan mahasiswa dalam pengumpulan tugas, kuis interaktif berbatas waktu, dan pemantauan capaian nilai otomatis.",
-    techStack: ["Laravel", "Vue.js", "MySQL", "Chart.js"],
-    features: [
-      "Sistem Gamifikasi Poin & Milestone Akademik",
-      "Auto-Grading Kuis & Tugas Berbatas Waktu",
-      "Visualisasi Statistik Nilai Mahasiswa",
-      "Export Rekap Nilai ke Excel & PDF"
-    ],
-    stats: [
-      { label: "Role", value: "Admin & Mahasiswa" },
-      { label: "DB", value: "MySQL" },
-      { label: "Stack", value: "Laravel + Vue" }
-    ],
-    links: {
-      github: "https://github.com/faza/eduquest-lms"
+    title: {
+      en: "EduQuest — Gamified Student Evaluation Portal",
+      id: "EduQuest — Portal Evaluasi Mahasiswa Gamifikasi",
     },
+    date: "2023",
+    shortDescription: {
+      en: "Gamified learning management system with timed quizzes, badges, and automated grade visualization.",
+      id: "Sistem manajemen pembelajaran (LMS) gamifikasi dengan kuis berbatas waktu dan rekap nilai otomatis.",
+    },
+    description: {
+      en: "Gamified learning management system designed to boost student engagement in assignment delivery, timed interactive quizzes, and automated statistical progress tracking.",
+      id: "Sistem manajemen pembelajaran (LMS) berbasis gamifikasi untuk meningkatkan keterlibatan mahasiswa dalam pengumpulan tugas, kuis interaktif berbatas waktu, dan pemantauan capaian nilai otomatis.",
+    },
+    techStack: ["Laravel", "Vue.js", "MySQL", "Chart.js"],
+    links: {},
     featured: false,
-    year: "2023",
-    badge: "ACADEMIC"
+    category: "Full-Stack Ecosystem",
   },
   {
     id: "arsip-digital",
     slug: "arsip-digital-surat-dokumen",
-    title: "E-Arsip — Document Archiving & Disposition",
-    tagline: "High Security Document Management & Tracking",
-    type: "System Architecture",
-    category: "System Architecture",
-    quote: "\"No document lost to the void. Organized and indexed.\"",
-    flavorQuote: "\"No document lost to the void. Organized and indexed.\"",
-    description: "Sistem informasi kearsipan surat masuk dan disposisi surat keluar untuk instansi, dilengkapi penomoran surat otomatis, enkripsi berkas dokumen digital, dan pelacakan riwayat disposisi pegawai.",
-    techStack: ["PHP", "Bootstrap", "MySQL", "FPDF"],
-    features: [
-      "Penomoran Surat Masuk & Keluar Otomatis",
-      "Alur Disposisi Bertingkat Antar Pejabat",
-      "Pencarian Cepat dengan Full-text Search",
-      "Backup & Restore Database Terjadwal"
-    ],
-    stats: [
-      { label: "Security", value: "Role-Based Access" },
-      { label: "Storage", value: "Encrypted PDFs" },
-      { label: "Performance", value: "Instant Search" }
-    ],
-    links: {
-      github: "https://github.com/faza/arsip-digital"
+    title: {
+      en: "E-Arsip — Document Archiving & Disposition",
+      id: "E-Arsip — Manajemen Arsip & Disposisi Surat",
     },
+    date: "2023",
+    shortDescription: {
+      en: "Government correspondence archiving system with automatic registration and disposition tracking.",
+      id: "Sistem kearsipan surat masuk dan disposisi berjenjang instansi dengan penomoran surat otomatis.",
+    },
+    description: {
+      en: "Digital document archiving and multi-tiered disposition management system for public institutions, featuring automated numbering, secure storage, and staff tracking.",
+      id: "Sistem informasi kearsipan surat masuk dan disposisi surat keluar untuk instansi, dilengkapi penomoran surat otomatis, enkripsi berkas dokumen digital, dan pelacakan riwayat disposisi pegawai.",
+    },
+    techStack: ["PHP", "Bootstrap", "MySQL", "FPDF"],
+    links: {},
     featured: false,
-    year: "2023",
-    badge: "ARCHIVE"
-  }
+    category: "System Architecture",
+  },
 ];
 
-// Helper export: Top 3-4 featured projects for the main horizontal slider
-export const FEATURED_PROJECTS = PROJECTS_DATA.filter((p) => p.featured).slice(0, 4);
+// Top featured projects for landing slider (Qlinica & RahmatBakery)
+export const FEATURED_PROJECTS = PROJECTS_DATA.filter((p) => p.featured);

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { sound } from '../utils/audio';
 import { ThemeMode } from '../App';
-import { RedactedText } from './RedactedText';
-import { blackSpaceManager, BlackSpaceState } from '../utils/blackSpaceState';
+import { blackSpaceManager, BlackSpaceState, ScribbleLocation } from '../utils/blackSpaceState';
 import { Mail, Copy, Check } from 'lucide-react';
 import { PlaceholderIcon } from './PlaceholderIcon';
 import { useLanguage } from '../utils/languageContext';
+import { BlackScribble } from './BlackScribble';
+import { useSanityProfile } from '../sanity/useSanityProfile';
 
 interface ContactSectionProps {
   theme?: ThemeMode;
@@ -16,8 +17,11 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   theme = 'dark',
 }) => {
   const { lang } = useLanguage();
+  const { profile } = useSanityProfile();
   const [copied, setCopied] = useState(false);
-  const email = "faza.contact.dev@gmail.com";
+  const email = profile.contact?.email || "faza.contact.dev@gmail.com";
+  const githubUrl = profile.contact?.github || "https://github.com/faza";
+  const linkedinUrl = profile.contact?.linkedin || "https://linkedin.com/in/faza";
   const isBlackSpace = theme === 'black-space';
 
   const [puzzleState, setPuzzleState] = useState<BlackSpaceState>(() =>
@@ -29,8 +33,10 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
     return () => unsub();
   }, []);
 
-  const shouldSpawnAnomalyHere =
-    isBlackSpace && puzzleState.spawnLocations.secondaryLocation === 'contact';
+  const contactScribble: ScribbleLocation | undefined = useMemo(() => {
+    if (!isBlackSpace) return undefined;
+    return puzzleState.scribbles.find((s) => s.section === 'contact');
+  }, [isBlackSpace, puzzleState.scribbles]);
 
   const handleCopy = async () => {
     sound.playSelect();
@@ -61,19 +67,27 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   return (
     <section
       id="contact"
-      className="h-[100dvh] md:h-screen w-full flex flex-col justify-center items-center overflow-y-auto md:overflow-hidden px-4 sm:px-6 font-mono select-none pt-12 pb-6 md:py-0"
+      className="h-[100dvh] md:h-screen w-full flex flex-col justify-start sm:justify-center items-center overflow-y-auto md:overflow-hidden px-4 sm:px-6 font-mono select-none pt-18 pb-16 sm:py-0"
     >
-      <div className="w-full max-w-3xl flex flex-col justify-center my-auto">
+      <div className="w-full max-w-3xl flex flex-col justify-center my-auto relative">
         {/* Contact Dialogue Box */}
-        <div className="omori-box p-5 sm:p-7 text-center">
-          <div data-glitch="true" className="text-[11px] sm:text-xs text-[var(--accent-red)] uppercase font-bold tracking-widest mb-1.5">
+        <div className="omori-box p-5 sm:p-7 text-center relative">
+          
+          {/* Slot 0: Top right corner inside dialogue box */}
+          {contactScribble && contactScribble.slotIndex === 0 && (
+            <div className="absolute top-3 right-3 z-10">
+              <BlackScribble scribble={contactScribble} />
+            </div>
+          )}
+
+          <div data-no-glitch="true" className="text-[11px] sm:text-xs text-[var(--accent-red)] uppercase font-bold tracking-widest mb-1.5">
             {isBlackSpace
               ? '> DESOLATE REST POINT'
               : lang === 'id'
               ? '> KONTAK // HUBUNGI SAYA'
               : '> CONTACT // GET IN TOUCH'}
           </div>
-          <h2 data-glitch="true" className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-main)] leading-snug">
+          <h2 data-no-glitch="true" className="text-xl sm:text-2xl font-bold mb-2 text-[var(--text-main)] leading-snug">
             {isBlackSpace
               ? "Rest Here. You Can Still Wake Up."
               : lang === 'id'
@@ -82,47 +96,45 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
           </h2>
           <div className="text-xs sm:text-sm text-[var(--text-muted)] max-w-lg mx-auto font-sans leading-relaxed mb-5">
             {isBlackSpace ? (
-              <div className="text-[#fca5a5]/80">
-                <span>The basket is empty. The red hands linger in the corners.{' '}</span>
-                {shouldSpawnAnomalyHere && (
-                  <RedactedText
-                    theme={theme}
-                    anomalyId="anomaly-contact"
-                    originalText="A crumpled letter lies under the checkered cloth."
-                    corruptedText="PICNIC_NOTE_#05"
-                  />
-                )}
-              </div>
+              <span className="text-[var(--text-muted)] italic">
+                {lang === 'id'
+                  ? 'Titik istirahat sunyi di tepi kehampaan.'
+                  : 'A desolate rest stop at the edge of the void.'}
+              </span>
             ) : (
               lang === 'id'
                 ? "Terbuka untuk peluang magang (internship), proyek rekayasa perangkat lunak, maupun diskusi teknis."
-                : "Open for internship opportunities, software engineering collaborations, and technical discussions."
+                : "Open for internship opportunities, software engineering projects, and technical discussions."
             )}
           </div>
 
           {/* Action Direct Links */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 mb-4">
-            <a
-              href="https://github.com/faza"
-              target="_blank"
-              rel="noopener noreferrer"
-              onMouseEnter={() => sound.playTextBlip()}
-              className="px-4 py-2.5 sketch-border bg-[var(--paper-color)] hover:border-[var(--text-main)] text-[var(--text-main)] text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <PlaceholderIcon name="github" size={14} />
-              <span>GitHub</span>
-            </a>
+          <div className="flex flex-col sm:flex-row justify-center gap-3 mb-4 relative">
+            {githubUrl && (
+              <a
+                href={githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onMouseEnter={() => sound.playTextBlip()}
+                className="px-4 py-2.5 sketch-border bg-[var(--paper-color)] hover:border-[var(--text-main)] text-[var(--text-main)] text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <PlaceholderIcon name="github" size={14} />
+                <span>GitHub</span>
+              </a>
+            )}
 
-            <a
-              href="https://linkedin.com/in/faza"
-              target="_blank"
-              rel="noopener noreferrer"
-              onMouseEnter={() => sound.playTextBlip()}
-              className="px-4 py-2.5 sketch-border bg-[var(--paper-color)] hover:border-[var(--text-main)] text-[var(--text-main)] text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <PlaceholderIcon name="linkedin" size={14} />
-              <span>LinkedIn</span>
-            </a>
+            {linkedinUrl && (
+              <a
+                href={linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onMouseEnter={() => sound.playTextBlip()}
+                className="px-4 py-2.5 sketch-border bg-[var(--paper-color)] hover:border-[var(--text-main)] text-[var(--text-main)] text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <PlaceholderIcon name="linkedin" size={14} />
+                <span>LinkedIn</span>
+              </a>
+            )}
 
             <button
               onClick={handleCopy}
@@ -132,6 +144,13 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
               {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
               <span>{copied ? (lang === 'id' ? '[ TERSALIN! ]' : '[ COPIED! ]') : (lang === 'id' ? '[ SALIN EMAIL ]' : '[ COPY EMAIL ]')}</span>
             </button>
+
+            {/* Slot 1: Beside action links */}
+            {contactScribble && contactScribble.slotIndex === 1 && (
+              <div className="inline-flex items-center ml-1">
+                <BlackScribble scribble={contactScribble} />
+              </div>
+            )}
           </div>
 
           {/* Email Display */}
@@ -140,14 +159,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
             <span className="font-mono text-[var(--text-main)] selection:bg-[var(--accent-red)]">
               {email}
             </span>
+
+            {/* Slot 2: Beside email line */}
+            {contactScribble && contactScribble.slotIndex === 2 && (
+              <BlackScribble scribble={contactScribble} className="ml-2" />
+            )}
           </div>
         </div>
 
         {/* Footer Note */}
         <div className="mt-6 text-center text-[10px] text-[var(--text-muted)] font-mono">
-          <span>&copy; {new Date().getFullYear()} FAZA // SOFTWARE CRAFTSMANSHIP</span>
+          <span>&copy; {new Date().getFullYear()} {(profile.nickname || profile.name || 'FAZA').toUpperCase()} // SOFTWARE CRAFTSMANSHIP</span>
           <span className="mx-2">•</span>
-          <span>POLITEKNIK NEGERI JEMBER</span>
+          <span>{(profile.education?.institution || 'POLITEKNIK NEGERI JEMBER').toUpperCase()}</span>
         </div>
       </div>
     </section>

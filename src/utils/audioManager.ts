@@ -5,6 +5,8 @@ import { audioSynthesizer } from './audioSynthesizer';
 
 type BGMMode = 'white-space' | 'black-space';
 
+const SOUND_STORAGE_KEY = 'porto_sound_muted';
+
 class AudioManager {
   private isMuted: boolean = true;
   private currentMode: BGMMode = 'white-space';
@@ -13,12 +15,26 @@ class AudioManager {
   private hasUserInteracted: boolean = false;
 
   constructor() {
-    // Initial sync with synthesizer: strictly muted
-    audioSynthesizer.setMuted(true);
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(SOUND_STORAGE_KEY);
+        if (saved === 'false') {
+          this.isMuted = false;
+        } else if (saved === 'true') {
+          this.isMuted = true;
+        }
+      } catch {}
+    }
+
+    // Initial sync with synthesizer
+    audioSynthesizer.setMuted(this.isMuted);
 
     if (typeof window !== 'undefined') {
       const unlockListener = () => {
         this.hasUserInteracted = true;
+        if (!this.isMuted) {
+          this.playBGM(this.currentMode);
+        }
         window.removeEventListener('click', unlockListener);
         window.removeEventListener('keydown', unlockListener);
         window.removeEventListener('touchstart', unlockListener);
@@ -47,6 +63,12 @@ class AudioManager {
     this.isMuted = muted;
     this.hasUserInteracted = true;
 
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(SOUND_STORAGE_KEY, String(muted));
+      } catch {}
+    }
+
     // Synchronize synthesizer mute state immediately
     audioSynthesizer.setMuted(muted);
 
@@ -66,6 +88,8 @@ class AudioManager {
     return this.setMuted(!this.isMuted);
   }
 
+  private bgmSessionId: number = 0;
+
   /**
    * Safe BGM Player:
    * Handles white-space.mp3 and black-space.mp3 with multiple candidate paths
@@ -77,11 +101,14 @@ class AudioManager {
       return;
     }
 
+    const sessionId = ++this.bgmSessionId;
+
     // Stop currently playing track if any
     if (this.bgmAudio) {
       try {
         this.bgmAudio.pause();
         this.bgmAudio.currentTime = 0;
+        this.bgmAudio.src = '';
       } catch {}
       this.bgmAudio = null;
     }
@@ -99,10 +126,20 @@ class AudioManager {
     audio.volume = mode === 'black-space' ? 0.4 : 0.3;
 
     const tryPlayNext = () => {
+      if (this.isMuted || this.bgmSessionId !== sessionId) {
+        try {
+          audio.pause();
+          audio.src = '';
+        } catch {}
+        return;
+      }
+
       if (candidateIndex >= candidatePaths.length) {
         // All MP3 file paths 404'd or failed to load:
         // Graceful procedural ambient synth fallback so music NEVER vanishes!
-        audioSynthesizer.startAmbientBGM(mode);
+        if (!this.isMuted && this.bgmSessionId === sessionId) {
+          audioSynthesizer.startAmbientBGM(mode);
+        }
         return;
       }
       const path = candidatePaths[candidateIndex];
@@ -113,10 +150,19 @@ class AudioManager {
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
+            if (this.isMuted || this.bgmSessionId !== sessionId) {
+              try {
+                audio.pause();
+                audio.src = '';
+              } catch {}
+              audioSynthesizer.stopAmbientBGM();
+              return;
+            }
             // Physical MP3 succeeded! Stop procedural synth bed
             audioSynthesizer.stopAmbientBGM();
           })
           .catch(() => {
+            if (this.isMuted || this.bgmSessionId !== sessionId) return;
             // If playback failed or 404, try next candidate path or fallback to synth
             tryPlayNext();
           });
@@ -124,6 +170,7 @@ class AudioManager {
     };
 
     audio.onerror = () => {
+      if (this.isMuted || this.bgmSessionId !== sessionId) return;
       tryPlayNext();
     };
 
@@ -132,10 +179,12 @@ class AudioManager {
   }
 
   public stopBGM(): void {
+    this.bgmSessionId++;
     if (this.bgmAudio) {
       try {
         this.bgmAudio.pause();
         this.bgmAudio.currentTime = 0;
+        this.bgmAudio.src = '';
       } catch {}
       this.bgmAudio = null;
     }
