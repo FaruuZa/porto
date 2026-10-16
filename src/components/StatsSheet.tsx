@@ -12,7 +12,7 @@ interface StatsSheetProps {
   theme?: ThemeMode;
 }
 
-export const StatsSheet: React.FC<StatsSheetProps> = ({ theme = 'dark' }) => {
+export const StatsSheet: React.FC<StatsSheetProps> = ({ theme = 'light' }) => {
   const { lang } = useLanguage();
   const { profile } = useSanityProfile();
   const isBlackSpace = theme === 'black-space';

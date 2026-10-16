@@ -17,7 +17,7 @@ interface TargetRect {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
-  theme = 'dark',
+  theme = 'light',
   onDismiss,
   isDataLoaded = true,
 }) => {
@@ -26,6 +26,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [stage, setStage] = useState<'blank' | 'loading' | 'gliding' | 'settled' | 'fading-out'>('blank');
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const hasTriggeredRef = useRef(false);
+  const isDataLoadedRef = useRef(isDataLoaded);
+  useEffect(() => {
+    isDataLoadedRef.current = isDataLoaded;
+  }, [isDataLoaded]);
 
   // Measure Hero Bulb's exact physical coordinates on screen
   useEffect(() => {
@@ -104,10 +108,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     }
   }, [isDataLoaded, minTimeElapsed, onDismiss]);
 
-  // Safety fallback timer: Ensure splash screen never hangs under any condition (max 3.2s)
+  // Safety: tidak hang, tapi TIDAK dismiss sebelum data loaded
   useEffect(() => {
-    const tSafety = setTimeout(() => {
-      if (!hasTriggeredRef.current) {
+    const startedAt = Date.now();
+    const tSafety = setInterval(() => {
+      if (hasTriggeredRef.current) {
+        clearInterval(tSafety);
+        return;
+      }
+      if (isDataLoadedRef.current) {
+        clearInterval(tSafety);
         hasTriggeredRef.current = true;
         setStage('gliding');
         setTimeout(() => {
@@ -116,10 +126,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         }, 800);
         setTimeout(() => setStage('fading-out'), 1050);
         setTimeout(() => onDismiss(), 1600);
+      } else if (Date.now() - startedAt > 15000) {
+        clearInterval(tSafety);
+        setStage('fading-out');
+        setTimeout(() => onDismiss(), 400);
       }
-    }, 3200);
-
-    return () => clearTimeout(tSafety);
+    }, 500);
+    return () => clearInterval(tSafety);
   }, [onDismiss]);
 
   // Coordinates

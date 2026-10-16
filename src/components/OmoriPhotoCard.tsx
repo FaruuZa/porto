@@ -21,6 +21,180 @@ interface OmoriPhotoCardProps {
   isSelected?: boolean;
 }
 
+const getBasilMemoryNote = (project?: ProjectItem | null, lang: 'id' | 'en' = 'id'): string => {
+  if (!project) {
+    return lang === 'id'
+      ? 'Sebuah momen berharga yang tersimpan hangat di halaman album ini.'
+      : 'A precious moment kept safe in this album page.';
+  }
+
+  if ((project as any)?.memoryNote) {
+    return getLocalizedText((project as any).memoryNote, lang);
+  }
+
+  const id = (project.id || project.slug || '').toLowerCase();
+  const rawTitle = (typeof project.title === 'string' ? project.title : project.title?.en || project.title?.id || '').toLowerCase();
+
+  if (id.includes('qlinica') || rawTitle.includes('qlinica')) {
+    return lang === 'id'
+      ? 'Waktu itu kami menyinkronkan data presensi mobile dan antrean klinik sampai larut malam...'
+      : 'We stayed up late that night getting real-time mobile attendance and clinical queues in sync...';
+  }
+  if (id.includes('rahmat') || id.includes('bakery') || rawTitle.includes('bakery')) {
+    return lang === 'id'
+      ? 'Teringat aroma hangat roti manis saat merapikan alur pemesanan dari web ke Android...'
+      : 'Still remembering the smell of fresh bread while testing catalog orders from web to Android...';
+  }
+  if (id.includes('card-clash') || id.includes('inferior') || rawTitle.includes('card clash')) {
+    return lang === 'id'
+      ? 'Eksperimen strategi kartu seru di mana pemain yang terdesak justru membalikkan keadaan...'
+      : 'A fun card battle idea where being on the back foot turns the whole tide around...';
+  }
+  if (id.includes('kitchen') || id.includes('pos') || rawTitle.includes('kitchenshell')) {
+    return lang === 'id'
+      ? 'Bunyi "beep" pemindai barcode pertama kali saat sukses mencatat transaksi ke kasir desktop...'
+      : 'That first satisfying barcode beep when transactions clicked into the desktop checkout...';
+  }
+  if (id.includes('omori') || id.includes('white-space') || rawTitle.includes('white space') || rawTitle.includes('portfolio')) {
+    return lang === 'id'
+      ? 'Menata ruang hening White Space dengan lampu gantung dan synthesizer audio kenangan...'
+      : 'Crafting the quiet White Space with the hanging lightbulb and nostalgic procedural audio...';
+  }
+
+  const desc = getProjectShortDescription(project, lang, 120);
+  if (desc) {
+    return lang === 'id'
+      ? `Kenangan saat mengerjakan sistem ini: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`
+      : `Memories of putting together this system: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`;
+  }
+
+  return lang === 'id'
+    ? 'Sebuah momen berharga yang tersimpan hangat di halaman album ini.'
+    : 'A precious moment kept safe in this album page.';
+};
+
+interface PolaroidBackSheetProps {
+  project?: ProjectItem | null;
+  title?: string;
+  location?: string;
+  date?: string;
+  lang: 'id' | 'en';
+  isBlackSpace?: boolean;
+  compact?: boolean;
+}
+
+const PolaroidBackSheet: React.FC<PolaroidBackSheetProps> = ({
+  project,
+  title = '',
+  location,
+  date,
+  lang,
+  isBlackSpace = false,
+  compact = false,
+}) => {
+  const shortTitle = (title || '').split('—')[0].trim().split(':')[0].trim();
+  const memoryNote = getBasilMemoryNote(project, lang);
+
+  return (
+    <div className="relative w-full h-full bg-[#f4f2ea] dark:bg-[#181822] text-[#22222f] dark:text-[#e0e0ea] flex flex-col justify-between overflow-hidden select-none">
+      {/* Authentic photo cardstock fine matte texture / paper grain overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.035] dark:opacity-[0.06] pointer-events-none"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
+          backgroundSize: '8px 8px',
+        }}
+      />
+
+      {/* Top Section: Peringatan Keamanan & Catatan Pabrik (Factory Technical Stamping) */}
+      <div className="relative z-10 px-2.5 sm:px-3 pt-2 pb-1 border-b border-black/10 dark:border-white/10 flex items-center justify-between text-[7px] sm:text-[7.5px] font-mono tracking-widest text-black/50 dark:text-white/40 uppercase">
+        <span className="truncate mr-2">
+          {lang === 'id'
+            ? '• INSTANT FILM • JANGAN LIPAT ATAU KUPAS'
+            : '• INSTANT FILM • DO NOT BEND OR PEEL'}
+        </span>
+        <span className="shrink-0 font-bold opacity-75">
+          {isBlackSpace ? 'EMULSION-VOID' : 'TYPE-B 600'}
+        </span>
+      </div>
+
+      {/* Middle Section: Area Tulis (Handwritten Note in Basil / Owner pen ink) */}
+      <div className="relative z-10 flex-1 px-3 sm:px-4 py-1.5 flex flex-col justify-center">
+        {/* Subtle lined notebook / cardstock ruling guidelines */}
+        <div className="relative pb-1.5 border-b border-black/[0.08] dark:border-white/[0.08]">
+          <div className="flex items-center justify-between text-[7px] sm:text-[7.5px] font-mono tracking-wider text-black/45 dark:text-white/35 uppercase mb-1">
+            <span>{lang === 'id' ? '[ CATATAN BASIL ]' : "[ BASIL'S MEMO ]"}</span>
+            <span className="font-bold tracking-normal opacity-75 truncate max-w-[120px]">{shortTitle}</span>
+          </div>
+          <p
+            className={`font-handwriting font-bold ${
+              compact ? 'text-[13.5px] sm:text-[15px]' : 'text-[15px] sm:text-[17px]'
+            } leading-snug text-[#1e1e2d] dark:text-[#f2f2fc] line-clamp-3`}
+          >
+            "{memoryNote}"
+          </p>
+        </div>
+
+        {/* Location & Date with razor-sharp inline SVGs (no emojis) */}
+        <div className="pt-1.5 flex items-center justify-between font-handwriting text-xs sm:text-sm text-[#3b3b4f] dark:text-[#b4b4c8]">
+          <span className="flex items-center gap-1.5">
+            {/* Inline sharp vector map pin in red */}
+            <svg
+              className="w-3.5 h-3.5 inline-block shrink-0 text-[#e11d48] dark:text-[#ff4455] drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" />
+            </svg>
+            <span>{location || (isBlackSpace ? 'Faraway Town' : 'Jember, ID')}</span>
+          </span>
+
+          <span className="flex items-center gap-1.5">
+            {/* Inline sharp vector calendar */}
+            <svg
+              className="w-3 h-3 inline-block shrink-0 opacity-60 text-current"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span>{date || '2024'}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Bottom Section: Bantalan Kimia (Reagent Chemical Pod / Developer Pouch) */}
+      <div className="relative z-10 w-full bg-black/[0.05] dark:bg-black/45 border-t-2 border-black/15 dark:border-white/15 px-2.5 sm:px-3 py-1.5 flex flex-col gap-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)]">
+        {/* Embossed heat-seal crimp line */}
+        <div className="w-full border-t border-dashed border-black/15 dark:border-white/15 mb-0.5" />
+        <div className="flex items-center justify-between text-[6.5px] sm:text-[7.5px] font-mono tracking-wider text-black/50 dark:text-white/40 uppercase">
+          <span className="flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-black/40 dark:bg-white/40 inline-block" />
+            <span>
+              {lang === 'id'
+                ? '▲ BANTALAN REAGEN KIMIA ▲'
+                : '▲ CHEMICAL REAGENT POD ▲'}
+            </span>
+          </span>
+          <span className="font-bold">
+            {lang === 'id' ? 'JANGAN DITEKAN' : 'DO NOT PRESS'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
   project,
   index,
@@ -86,20 +260,20 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
     return (
       <div
         onMouseEnter={() => sound.playTextBlip()}
-        className="group omori-card p-4 sm:p-5 h-[370px] sm:h-[315px] flex flex-col sm:flex-row gap-4 sm:gap-6 justify-between select-none hover:!translate-y-0 hover:!transform-none"
+        className="group omori-card p-4 sm:p-5 min-h-[420px] sm:min-h-0 sm:h-[315px] flex flex-col sm:flex-row gap-4 sm:gap-6 justify-between select-none hover:!translate-y-0 hover:!transform-none"
       >
-        {/* Left Side: Cohesive Basil Album Polaroid (One physical unit with photo, tilts at rest, straightens on hover or when selected) */}
-        <div
-          className={`w-full sm:w-[245px] md:w-[265px] shrink-0 h-[145px] sm:h-full bg-[#fbfbfa] dark:bg-[#16161d] border-2 border-[var(--border-color)] p-2 pb-2.5 flex flex-col justify-between relative shadow-[0_4px_12px_rgba(0,0,0,0.15)] group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.6)] ${
-            isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.25)]' : restingTilt
-          } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
-        >
-          {/* Scrapbook photo tape accent on top corner */}
-          <div className="absolute -top-1.5 left-5 w-8 h-2.5 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+        {/* Left Side: Authentic Polaroid Asli / Instax Square (1:1.2 total paper, 1:1 square photo) */}
+        {resolvedImageUrl ? (
+          <div
+            className={`w-[170px] sm:w-[225px] md:w-[235px] aspect-[1/1.2] shrink-0 mx-auto sm:mx-0 bg-[#fbfbfa] dark:bg-[#16161d] p-2 pb-2.5 border-2 border-[var(--border-color)] flex flex-col justify-between relative shadow-[0_4px_12px_rgba(0,0,0,0.15)] group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.6)] ${
+              isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.25)]' : restingTilt
+            } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
+          >
+            {/* Scrapbook photo tape accent on top corner */}
+            <div className="absolute -top-1.5 left-5 w-8 h-2.5 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
 
-          {/* Inner Photo Frame: Pure aspect-contain letterbox with black background (never cropped) */}
-          <div className="relative w-full h-full overflow-hidden bg-[#09090d] border border-black/30 dark:border-white/20 flex items-center justify-center">
-            {resolvedImageUrl ? (
+            {/* Inner Photo Frame: 1:1 Kotak Sempurna */}
+            <div className="relative w-full aspect-square overflow-hidden bg-[#09090d] border border-black/30 dark:border-white/20 flex items-center justify-center">
               <img
                 src={resolvedImageUrl}
                 alt={title}
@@ -108,55 +282,49 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
                   isBlackSpace ? 'grayscale contrast-135 brightness-75' : ''
                 }`}
               />
-            ) : (
-              /* Nostalgic Basil Notebook Sketch for unphotographed memory */
-              <div
-                className={`w-full h-full flex flex-col items-center justify-center p-2 text-center ${
-                  isBlackSpace ? 'bg-[#090408] text-[#5e3843]' : 'bg-[#15151b] text-[var(--text-muted)]'
-                }`}
-              >
-                <svg
-                  viewBox="0 0 64 48"
-                  className="w-10 h-8 mb-1 opacity-70"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="6" y="8" width="52" height="32" rx="2" strokeDasharray="3 2" />
-                  <circle cx="32" cy="24" r="8" strokeWidth="1.5" />
-                  <circle cx="32" cy="24" r="3" fill="currentColor" opacity="0.4" />
-                  <path d="M 46,14 L 50,14" strokeWidth="2" />
-                </svg>
-                <span className="text-[9px] font-mono tracking-wider opacity-75">
-                  {isBlackSpace ? '[ CORRUPTED ]' : (lang === 'id' ? '[ CETAKAN BELUM ADA ]' : '[ PHOTO NOT YET TAKEN ]')}
-                </span>
-              </div>
-            )}
 
-            {/* Black Space Natural Marker Scribble Overlay */}
-            {isBlackSpace && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                <OmoriMarkerScribble
-                  variant={index}
-                  size="cover"
-                  className="opacity-95 scale-110"
-                />
-              </div>
-            )}
-          </div>
+              {/* Black Space Natural Marker Scribble Overlay (Only when photo exists) */}
+              {isBlackSpace && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                  <OmoriMarkerScribble
+                    variant={index}
+                    size="cover"
+                    className="opacity-95 scale-110"
+                  />
+                </div>
+              )}
+            </div>
 
-          {/* Basil Hand-Scrawled Marker Polaroid Caption: Left = Location, Right = Year */}
-          <div className="mt-1 flex items-center justify-between px-1">
-            <span className="font-handwriting font-bold text-[#202028] dark:text-[#d6d6e2] text-base sm:text-lg leading-none">
-              {isBlackSpace ? '???' : (project.location || 'Jember, ID')}
-            </span>
-            <span className="font-handwriting font-medium text-xs sm:text-sm text-[#484856] dark:text-[#a8a8b6] leading-none">
-              {project.date || project.year || '2024'}
-            </span>
+            {/* Basil Hand-Scrawled Marker Polaroid Chin Caption */}
+            <div className="flex-1 flex items-center justify-between px-1 pt-1">
+              <span className="font-handwriting font-bold text-base sm:text-lg leading-none text-[#202028] dark:text-[#d6d6e2]">
+                {isBlackSpace ? '???' : (project.location || 'Jember, ID')}
+              </span>
+              <span className="font-handwriting font-medium text-xs sm:text-sm leading-none text-[#484856] dark:text-[#a8a8b6]">
+                {project.date || project.year || '2024'}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            className={`w-[170px] sm:w-[225px] md:w-[235px] aspect-[1/1.2] shrink-0 mx-auto sm:mx-0 border-2 border-[var(--border-color)] relative shadow-[0_4px_12px_rgba(0,0,0,0.15)] group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.6)] ${
+              isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.25)]' : restingTilt
+            } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
+          >
+            {/* Scrapbook photo tape accent on top corner */}
+            <div className="absolute -top-1.5 left-5 w-8 h-2.5 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+
+            {/* Seamless single-sheet Polaroid Back */}
+            <PolaroidBackSheet
+              project={project}
+              title={title}
+              location={project.location}
+              date={project.date || project.year}
+              lang={lang}
+              isBlackSpace={isBlackSpace}
+            />
+          </div>
+        )}
 
         {/* Right Side: Clean Project Details (NO redundant year at top right) */}
         <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -260,24 +428,24 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
         </div>
 
         {/* Basil Album Photo Frame: 1 cohesive physical unit with photo, smooth tilt hover animation or straightened when selected */}
-        <div
-          onClick={() => {
-            if (onOpenDetails) {
-              sound.playSelect();
-              onOpenDetails();
-            }
-          }}
-          className={`w-full aspect-[16/10] bg-[#fbfbfa] dark:bg-[#16161d] border-2 border-[var(--border-color)] p-1.5 pb-2 mb-3 flex flex-col justify-between relative shadow-[0_3px_10px_rgba(0,0,0,0.12)] group-hover:shadow-[0_8px_22px_rgba(0,0,0,0.25)] dark:shadow-[0_5px_14px_rgba(0,0,0,0.55)] ${
-            isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_22px_rgba(0,0,0,0.25)]' : restingTilt
-          } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
-          title={onOpenDetails ? (lang === 'id' ? 'Klik foto untuk melihat galeri & detail' : 'Click photo to view gallery & details') : undefined}
-        >
-          {/* Photo tape accent */}
-          <div className="absolute -top-1.5 left-4 w-7 h-2 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+        {resolvedImageUrl ? (
+          <div
+            onClick={() => {
+              if (onOpenDetails) {
+                sound.playSelect();
+                onOpenDetails();
+              }
+            }}
+            className={`w-full max-w-[205px] sm:max-w-[220px] mx-auto aspect-[1/1.2] bg-[#fbfbfa] dark:bg-[#16161d] p-2 pb-2.5 border-2 border-[var(--border-color)] mb-3 flex flex-col justify-between relative shadow-[0_3px_10px_rgba(0,0,0,0.12)] group-hover:shadow-[0_8px_22px_rgba(0,0,0,0.25)] dark:shadow-[0_5px_14px_rgba(0,0,0,0.55)] ${
+              isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_22px_rgba(0,0,0,0.25)]' : restingTilt
+            } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
+            title={onOpenDetails ? (lang === 'id' ? 'Klik foto untuk melihat galeri & detail' : 'Click photo to view gallery & details') : undefined}
+          >
+            {/* Photo tape accent */}
+            <div className="absolute -top-1.5 left-4 w-7 h-2 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
 
-          {/* Inner Photo Frame: Pure aspect-contain letterbox with black background (never cropped) */}
-          <div className="relative w-full h-full overflow-hidden bg-[#09090d] border border-black/30 dark:border-white/20 flex items-center justify-center">
-            {resolvedImageUrl ? (
+            {/* Inner Photo Frame: 1:1 Kotak Sempurna */}
+            <div className="relative w-full aspect-square overflow-hidden bg-[#09090d] border border-black/30 dark:border-white/20 flex items-center justify-center">
               <img
                 src={resolvedImageUrl}
                 alt={title}
@@ -286,54 +454,57 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
                   isBlackSpace ? 'grayscale contrast-135 brightness-75' : ''
                 }`}
               />
-            ) : (
-              <div
-                className={`w-full h-full flex flex-col items-center justify-center p-2 text-center ${
-                  isBlackSpace ? 'bg-[#090408] text-[#5e3843]' : 'bg-[#15151b] text-[var(--text-muted)]'
-                }`}
-              >
-                <svg
-                  viewBox="0 0 64 48"
-                  className="w-9 h-7 mb-1 opacity-70"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="6" y="8" width="52" height="32" rx="2" strokeDasharray="3 2" />
-                  <circle cx="32" cy="24" r="8" strokeWidth="1.5" />
-                  <circle cx="32" cy="24" r="3" fill="currentColor" opacity="0.4" />
-                  <path d="M 46,14 L 50,14" strokeWidth="2" />
-                </svg>
-                <span className="text-[8.5px] font-mono tracking-wider opacity-75">
-                  {isBlackSpace ? '[ CORRUPTED ]' : (lang === 'id' ? '[ CETAKAN BELUM ADA ]' : '[ PHOTO NOT YET TAKEN ]')}
-                </span>
-              </div>
-            )}
 
-            {/* Black Space Natural Marker Scribble Overlay */}
-            {isBlackSpace && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                <OmoriMarkerScribble
-                  variant={index}
-                  size="cover"
-                  className="opacity-95 scale-110"
-                />
-              </div>
-            )}
-          </div>
+              {/* Black Space Natural Marker Scribble Overlay (Only when photo exists) */}
+              {isBlackSpace && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                  <OmoriMarkerScribble
+                    variant={index}
+                    size="cover"
+                    className="opacity-95 scale-110"
+                  />
+                </div>
+              )}
+            </div>
 
-          {/* Handwritten Polaroid Chin Note: Left = Location, Right = Year */}
-          <div className="mt-1 flex items-center justify-between px-1">
-            <span className="font-handwriting font-bold text-[#202028] dark:text-[#d6d6e2] text-sm sm:text-base leading-none">
-              {isBlackSpace ? '???' : (project.location || 'Jember, ID')}
-            </span>
-            <span className="font-handwriting font-medium text-xs text-[#484856] dark:text-[#a8a8b6] leading-none">
-              {project.date || project.year || '2024'}
-            </span>
+            {/* Handwritten Polaroid Chin Note: Left = Location, Right = Year */}
+            <div className="flex-1 flex items-center justify-between px-1 pt-1">
+              <span className="font-handwriting font-bold text-sm sm:text-base leading-none text-[#202028] dark:text-[#d6d6e2]">
+                {isBlackSpace && resolvedImageUrl ? '???' : (project.location || 'Jember, ID')}
+              </span>
+              <span className="font-handwriting font-medium text-xs leading-none text-[#484856] dark:text-[#a8a8b6]">
+                {project.date || project.year || '2024'}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            onClick={() => {
+              if (onOpenDetails) {
+                sound.playSelect();
+                onOpenDetails();
+              }
+            }}
+            className={`w-full max-w-[205px] sm:max-w-[220px] mx-auto aspect-[1/1.2] border-2 border-[var(--border-color)] mb-3 relative shadow-[0_3px_10px_rgba(0,0,0,0.12)] group-hover:shadow-[0_8px_22px_rgba(0,0,0,0.25)] dark:shadow-[0_5px_14px_rgba(0,0,0,0.55)] ${
+              isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_22px_rgba(0,0,0,0.25)]' : restingTilt
+            } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
+            title={onOpenDetails ? (lang === 'id' ? 'Klik untuk melihat detail' : 'Click to view details') : undefined}
+          >
+            {/* Photo tape accent */}
+            <div className="absolute -top-1.5 left-4 w-7 h-2 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+
+            {/* Seamless single-sheet Polaroid Back */}
+            <PolaroidBackSheet
+              project={project}
+              title={title}
+              location={project.location}
+              date={project.date || project.year}
+              lang={lang}
+              isBlackSpace={isBlackSpace}
+              compact
+            />
+          </div>
+        )}
 
         {/* Title with Fixed Min-Height */}
         <div className="min-h-[2.75rem] flex items-center mb-1">

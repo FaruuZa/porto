@@ -24,10 +24,7 @@ export const PROJECTS_DATA: ProjectDetail[] = [
       id: "Ekosistem manajemen klinik terpadu berbasis web yang tersinkronisasi langsung dengan aplikasi presensi mobile. Mengotomatisasi alur pendaftaran pasien rawat jalan, sistem antrean terpusat, jadwal dokter spesialis, serta inventaris modul apotek dan resep obat.",
     },
     techStack: ["Laravel", "Flutter", "PostgreSQL", "REST API", "Tailwind CSS"],
-    links: {
-      demo: "https://qlinica.demo.app",
-      repo: "https://github.com/faza/qlinica-clinical-erp",
-    },
+    links: {},
     featured: true,
     category: "Full-Stack Ecosystem",
   },
@@ -48,9 +45,7 @@ export const PROJECTS_DATA: ProjectDetail[] = [
       id: "Platform pemesanan toko kue multi-platform (web & mobile). Memungkinkan pelanggan memilih katalog dan melakukan reservasi transaksi pesanan, sementara pemilik toko memantau dashboard status order dan laporan penjualan secara berkala.",
     },
     techStack: ["PHP", "Kotlin", "PostgreSQL", "Android SDK"],
-    links: {
-      repo: "https://github.com/faza/rahmat-bakery-system",
-    },
+    links: {},
     featured: true,
     category: "Web & Mobile App",
   },

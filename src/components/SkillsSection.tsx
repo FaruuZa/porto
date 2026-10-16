@@ -11,7 +11,7 @@ interface SkillsSectionProps {
   theme?: ThemeMode;
 }
 
-export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'dark' }) => {
+export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'light' }) => {
   const { lang } = useLanguage();
   const { skills } = useSanityProfile();
   const isBlackSpace = theme === 'black-space';

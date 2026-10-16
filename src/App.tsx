@@ -13,6 +13,9 @@ import { FEATURED_PROJECTS } from './data/projectsData';
 import { LanguageProvider, useLanguage } from './utils/languageContext';
 import { SplashScreen } from './components/SplashScreen';
 import { useSanityProjects } from './sanity/useSanityProjects';
+import { useSanityProfile } from './sanity/useSanityProfile';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export type ThemeMode = 'dark' | 'light' | 'black-space';
 
@@ -45,7 +48,7 @@ const getInitialTheme = (): ThemeMode => {
       }
     } catch {}
   }
-  return 'dark';
+  return 'light';
 };
 
 const MainPortfolioApp: React.FC = () => {
@@ -53,7 +56,7 @@ const MainPortfolioApp: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [returnTheme, setReturnTheme] = useState<'dark' | 'light'>(() => {
     const initial = getInitialTheme();
-    return initial === 'light' ? 'light' : 'dark';
+    return initial === 'dark' ? 'dark' : 'light';
   });
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [projectSlide, setProjectSlide] = useState(0);
@@ -80,6 +83,7 @@ const MainPortfolioApp: React.FC = () => {
   const touchScrollEdge = useRef<{ atTop: boolean; atBottom: boolean }>({ atTop: true, atBottom: true });
 
   const { featuredProjects, loading: projectsLoading } = useSanityProjects();
+  const { loading: profileLoading } = useSanityProfile();
   const totalProjectSlides = featuredProjects.length + 1;
   const sectionMetadata = lang === 'id' ? SECTION_METADATA_ID : SECTION_METADATA_EN;
 
@@ -397,7 +401,7 @@ const MainPortfolioApp: React.FC = () => {
         <SplashScreen
           theme={theme}
           onDismiss={handleDismissSplash}
-          isDataLoaded={!projectsLoading}
+          isDataLoaded={!projectsLoading && !profileLoading}
         />
       )}
 
@@ -585,6 +589,8 @@ export const App: React.FC = () => {
   return (
     <LanguageProvider>
       <MainPortfolioApp />
+      <Analytics />
+      <SpeedInsights />
     </LanguageProvider>
   );
 };

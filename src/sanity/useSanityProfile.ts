@@ -52,9 +52,9 @@ export const DEFAULT_AUTHOR_PROFILE: AuthorProfile = {
   ],
   specialization: "Backend Systems & Database Engineering",
   contact: {
-    email: "faza.contact.dev@gmail.com",
-    github: "https://github.com/faza",
-    linkedin: "https://linkedin.com/in/faza",
+    email: "",
+    github: "",
+    linkedin: "",
     resumeUrl: "",
   },
 };
@@ -82,8 +82,10 @@ function fetchProfileAndSkills() {
             ...(authorData.education || {}),
           },
           contact: {
-            ...DEFAULT_AUTHOR_PROFILE.contact!,
-            ...(authorData.contact || {}),
+            email: authorData.contact?.email?.trim() || "",
+            github: authorData.contact?.github?.trim() || "",
+            linkedin: authorData.contact?.linkedin?.trim() || "",
+            resumeUrl: authorData.contact?.resumeUrl?.trim() || "",
           },
           status: authorData.status || DEFAULT_AUTHOR_PROFILE.status,
           heroBio: authorData.heroBio || DEFAULT_AUTHOR_PROFILE.heroBio,

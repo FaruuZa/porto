@@ -14,7 +14,7 @@
       (function() {
         try {
           var savedTheme = localStorage.getItem('porto_theme');
-          if (savedTheme === 'light') {
+          if (savedTheme !== 'dark') {
             document.documentElement.classList.add('light-theme');
           }
           var savedLang = localStorage.getItem('porto_lang');
@@ -28,7 +28,7 @@
   <body class="antialiased min-h-screen">
     <script>
       try {
-        if (localStorage.getItem('porto_theme') === 'light') {
+        if (localStorage.getItem('porto_theme') !== 'dark') {
           document.body.classList.add('light-theme');
         }
       } catch (e) {}

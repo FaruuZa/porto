@@ -14,14 +14,14 @@ interface ContactSectionProps {
 }
 
 export const ContactSection: React.FC<ContactSectionProps> = ({
-  theme = 'dark',
+  theme = 'light',
 }) => {
   const { lang } = useLanguage();
   const { profile } = useSanityProfile();
   const [copied, setCopied] = useState(false);
-  const email = profile.contact?.email || "faza.contact.dev@gmail.com";
-  const githubUrl = profile.contact?.github || "https://github.com/faza";
-  const linkedinUrl = profile.contact?.linkedin || "https://linkedin.com/in/faza";
+  const email = profile.contact?.email?.trim() || "";
+  const githubUrl = profile.contact?.github?.trim() && profile.contact.github.trim() !== '#' ? profile.contact.github.trim() : "";
+  const linkedinUrl = profile.contact?.linkedin?.trim() && profile.contact.linkedin.trim() !== '#' ? profile.contact.linkedin.trim() : "";
   const isBlackSpace = theme === 'black-space';
 
   const [puzzleState, setPuzzleState] = useState<BlackSpaceState>(() =>
@@ -136,14 +136,16 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
               </a>
             )}
 
-            <button
-              onClick={handleCopy}
-              onMouseEnter={() => sound.playTextBlip()}
-              className="px-4 py-2.5 sketch-border bg-[var(--paper-color)] hover:border-[var(--accent-red)] text-[var(--text-main)] text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-              <span>{copied ? (lang === 'id' ? '[ TERSALIN! ]' : '[ COPIED! ]') : (lang === 'id' ? '[ SALIN EMAIL ]' : '[ COPY EMAIL ]')}</span>
-            </button>
+            {email && (
+              <button
+                onClick={handleCopy}
+                onMouseEnter={() => sound.playTextBlip()}
+                className="px-4 py-2.5 sketch-border bg-[var(--paper-color)] hover:border-[var(--accent-red)] text-[var(--text-main)] text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                <span>{copied ? (lang === 'id' ? '[ TERSALIN! ]' : '[ COPIED! ]') : (lang === 'id' ? '[ SALIN EMAIL ]' : '[ COPY EMAIL ]')}</span>
+              </button>
+            )}
 
             {/* Slot 1: Beside action links */}
             {contactScribble && contactScribble.slotIndex === 1 && (
@@ -154,17 +156,25 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
           </div>
 
           {/* Email Display */}
-          <div className="mt-4 pt-4 border-t border-[var(--border-color)] text-xs text-[var(--text-muted)] flex items-center justify-center gap-2">
-            <Mail size={13} className="text-[var(--accent-red)]" />
-            <span className="font-mono text-[var(--text-main)] selection:bg-[var(--accent-red)]">
-              {email}
-            </span>
+          {email && (
+            <div className="mt-4 pt-4 border-t border-[var(--border-color)] text-xs text-[var(--text-muted)] flex items-center justify-center gap-2">
+              <Mail size={13} className="text-[var(--accent-red)]" />
+              <span className="font-mono text-[var(--text-main)] selection:bg-[var(--accent-red)]">
+                {email}
+              </span>
 
-            {/* Slot 2: Beside email line */}
-            {contactScribble && contactScribble.slotIndex === 2 && (
-              <BlackScribble scribble={contactScribble} className="ml-2" />
-            )}
-          </div>
+              {/* Slot 2: Beside email line */}
+              {contactScribble && contactScribble.slotIndex === 2 && (
+                <BlackScribble scribble={contactScribble} className="ml-2" />
+              )}
+            </div>
+          )}
+
+          {!email && contactScribble && contactScribble.slotIndex === 2 && (
+            <div className="mt-2 flex justify-center">
+              <BlackScribble scribble={contactScribble} />
+            </div>
+          )}
         </div>
 
         {/* Footer Note */}

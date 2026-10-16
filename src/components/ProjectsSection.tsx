@@ -17,7 +17,7 @@ interface ProjectsSectionProps {
 }
 
 export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
-  theme = 'dark',
+  theme = 'light',
   currentSlide = 0,
   onSlideChange,
   onNavigateProjects,
@@ -193,7 +193,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     onNavigateProjects?.();
                   }
                 }}
-                className="omori-card p-6 h-[370px] sm:h-[315px] flex flex-col justify-center items-center text-center cursor-pointer group select-none"
+                className="omori-card p-6 min-h-[420px] sm:min-h-0 sm:h-[315px] flex flex-col justify-center items-center text-center cursor-pointer group select-none"
               >
                 <div className="p-3 border-2 border-[var(--border-color)] bg-[var(--bg-color)] group-hover:scale-110 transition-transform mb-3">
                   <ExternalLink size={24} className="text-[var(--accent-red)]" />
