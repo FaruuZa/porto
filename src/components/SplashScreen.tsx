@@ -64,16 +64,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     };
   }, []);
 
-  // Minimum intro duration so user gets to appreciate the atmospheric quote (800ms)
+  // Atmospheric intro duration so user gets to appreciate the quote (1400ms)
   useEffect(() => {
     const tEnter = setTimeout(() => {
       setStage('loading');
       sound.playTextBlip();
-    }, 80);
+    }, 60);
 
     const tMin = setTimeout(() => {
       setMinTimeElapsed(true);
-    }, 800);
+    }, 1400);
 
     return () => {
       clearTimeout(tEnter);
@@ -81,7 +81,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     };
   }, []);
 
-  // Main trigger: Once data is loaded and minimum time elapsed, play the glide animation
+  // Main trigger: Once data is loaded and minimum time elapsed, glide and settle smoothly
   useEffect(() => {
     if (isDataLoaded && minTimeElapsed && !hasTriggeredRef.current) {
       hasTriggeredRef.current = true;
@@ -90,15 +90,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       const tSettled = setTimeout(() => {
         setStage('settled');
         sound.playSakelarSFX();
-      }, 800);
+      }, 850);
 
       const tFade = setTimeout(() => {
         setStage('fading-out');
-      }, 1050);
+      }, 1100);
 
       const tDone = setTimeout(() => {
         onDismiss();
-      }, 1600);
+      }, 1750);
 
       return () => {
         clearTimeout(tSettled);
@@ -108,32 +108,36 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     }
   }, [isDataLoaded, minTimeElapsed, onDismiss]);
 
-  // Safety: tidak hang, tapi TIDAK dismiss sebelum data loaded
+  // Fallback safety: only triggers if external data takes excessively long (> 7 seconds)
   useEffect(() => {
-    const startedAt = Date.now();
-    const tSafety = setInterval(() => {
-      if (hasTriggeredRef.current) {
-        clearInterval(tSafety);
-        return;
-      }
-      if (isDataLoadedRef.current) {
-        clearInterval(tSafety);
+    const tSafety = setTimeout(() => {
+      if (!hasTriggeredRef.current) {
         hasTriggeredRef.current = true;
         setStage('gliding');
         setTimeout(() => {
           setStage('settled');
           sound.playSakelarSFX();
-        }, 800);
-        setTimeout(() => setStage('fading-out'), 1050);
-        setTimeout(() => onDismiss(), 1600);
-      } else if (Date.now() - startedAt > 15000) {
-        clearInterval(tSafety);
-        setStage('fading-out');
-        setTimeout(() => onDismiss(), 400);
+        }, 850);
+        setTimeout(() => setStage('fading-out'), 1100);
+        setTimeout(() => onDismiss(), 1750);
       }
-    }, 500);
-    return () => clearInterval(tSafety);
+    }, 7000);
+
+    return () => clearTimeout(tSafety);
   }, [onDismiss]);
+
+  // Click anywhere to fast-forward
+  const handleFastForward = () => {
+    if (hasTriggeredRef.current || stage === 'fading-out') return;
+    hasTriggeredRef.current = true;
+    setStage('gliding');
+    setTimeout(() => {
+      setStage('settled');
+      sound.playSakelarSFX();
+    }, 400);
+    setTimeout(() => setStage('fading-out'), 600);
+    setTimeout(() => onDismiss(), 1150);
+  };
 
   // Coordinates
   const fallbackLeft = typeof window !== 'undefined' ? window.innerWidth / 2 - 21 : 0;
@@ -146,16 +150,28 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   const isAtHeroPos = stage === 'gliding' || stage === 'settled' || stage === 'fading-out';
 
+  const splashBgColor =
+    theme === 'light'
+      ? '#f7f7f3'
+      : theme === 'black-space'
+      ? '#030104'
+      : '#0d0d11';
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className={`fixed inset-0 z-50 select-none pointer-events-auto transition-opacity duration-600 ease-out ${
-        stage === 'fading-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      onClick={handleFastForward}
+      style={{ backgroundColor: splashBgColor, zIndex: 9999 }}
+      className={`fixed inset-0 z-[100] select-none transition-opacity duration-700 ease-out cursor-default ${
+        stage === 'fading-out' ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
       }`}
     >
-      {/* Pure void background matching theme */}
-      <div className="absolute inset-0 bg-[var(--bg-color)]" />
+      {/* Pure void solid background matching theme */}
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: splashBgColor }}
+      />
 
       {/* Floating Hanging Lightbulb (Seamlessly glides and locks onto Hero's bulb) */}
       <div
@@ -170,8 +186,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           transform: isAtHeroPos ? 'scale(1)' : 'scale(1.22)',
           transformOrigin: '50% 0',
           transition: stage === 'loading'
-            ? 'opacity 400ms ease-out'
-            : 'left 800ms cubic-bezier(0.16, 1, 0.3, 1), top 800ms cubic-bezier(0.16, 1, 0.3, 1), transform 800ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease-out',
+            ? 'opacity 350ms ease-out'
+            : 'left 850ms cubic-bezier(0.16, 1, 0.3, 1), top 850ms cubic-bezier(0.16, 1, 0.3, 1), transform 850ms cubic-bezier(0.16, 1, 0.3, 1), opacity 350ms ease-out',
         }}
         aria-hidden="true"
       >
@@ -247,6 +263,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             : '"You have been living here for as long as you can remember..."'}
         </p>
       </div>
+
+      {/* Subtle skip affordance */}
+      {stage === 'loading' && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none text-center">
+          <span className="font-mono text-[10px] text-[var(--text-muted)] opacity-40">
+            [ {lang === 'id' ? 'Klik di mana saja untuk lanjut' : 'Click anywhere to continue'} ]
+          </span>
+        </div>
+      )}
     </div>
   );
 };

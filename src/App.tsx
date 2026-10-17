@@ -337,13 +337,13 @@ const MainPortfolioApp: React.FC = () => {
     }
   };
 
-  const [isWakingUp, setIsWakingUp] = useState(false);
-  const [isEnteringBlackSpace, setIsEnteringBlackSpace] = useState(false);
+  type TransitionGatePhase = 'idle' | 'closing' | 'closed' | 'opening';
+  const [wakeUpGate, setWakeUpGate] = useState<TransitionGatePhase>('idle');
+  const [entryGate, setEntryGate] = useState<TransitionGatePhase>('idle');
 
-  // Enter Black Space mode with clean blackout transition (instantly snaps theme under solid black)
+  // Enter Black Space mode with clean blackout transition gate (instantly snaps theme under solid black curtain)
   const handleEnterBlackSpace = () => {
-    if (theme !== 'black-space' && !isEnteringBlackSpace) {
-      setIsEnteringBlackSpace(true);
+    if (theme !== 'black-space' && entryGate === 'idle') {
       sound.playBulbBuzzSFX('strong');
       sound.playBlackSpaceTriggerSFX();
 
@@ -351,74 +351,116 @@ const MainPortfolioApp: React.FC = () => {
       document.documentElement.classList.add('no-theme-transition');
       document.body.classList.add('no-theme-transition');
 
-      // At 280ms (screen is 100% solid black):
+      setEntryGate('closing');
+
+      // At 300ms (screen is 100% solid black curtain):
       window.setTimeout(() => {
+        setEntryGate('closed');
+
         setReturnTheme(theme === 'light' ? 'light' : 'dark');
+        document.documentElement.classList.remove('light-theme');
+        document.body.classList.remove('light-theme');
+        document.documentElement.classList.add('black-space-theme');
+        document.body.classList.add('black-space-theme');
+
         setTheme('black-space');
         blackSpaceManager.enterBlackSpace();
         blackSpaceAudio.startBlackSpace();
 
-        // Restore transitions after the DOM has completely committed the Black Space theme
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
+        void document.documentElement.offsetHeight;
+        void document.body.offsetHeight;
+
+        window.setTimeout(() => {
+          setEntryGate('opening');
+
+          window.setTimeout(() => {
+            setEntryGate('idle');
             document.documentElement.classList.remove('no-theme-transition');
             document.body.classList.remove('no-theme-transition');
-          });
-        });
-      }, 280);
-
-      // At 850ms (screen smoothly opens directly into Black Space):
-      window.setTimeout(() => {
-        setIsEnteringBlackSpace(false);
-      }, 850);
+          }, 450);
+        }, 140);
+      }, 300);
     }
   };
 
-  // Restrained Wake Up transition from Black Space:
-  // sequence: screen fades to pitch-black -> resets to starting section (Hero) & White Space theme -> screen opens up revealing White Space
+  // Restrained Wake Up transition gate from Black Space:
+  // sequence: screen fades to pitch-black gate -> all themes, styles & sections committed instantly behind 100% solid curtain -> gate smoothly lifts revealing already-lit White Space
   const handleWakeUp = () => {
-    if (!blackSpaceManager.getState().canWakeUp || isWakingUp) {
+    if (!blackSpaceManager.getState().canWakeUp || wakeUpGate !== 'idle') {
       return;
     }
 
-    setIsWakingUp(true);
     sound.playWakeUp();
     blackSpaceAudio.stopBlackSpace();
 
+    // 1. Immediately freeze all CSS transitions across the entire DOM tree
     document.documentElement.classList.add('no-theme-transition');
     document.body.classList.add('no-theme-transition');
 
-    // At 350ms (when screen is completely black and opaque):
+    // 2. Close the black gate curtain (0.32s fade to 100% black)
+    setWakeUpGate('closing');
+
+    // At 320ms: Gate curtain is 100% closed, completely hiding the viewport
     window.setTimeout(() => {
-      // 1. Return to starting section (Section 0: Hero / White Space starting room)
+      setWakeUpGate('closed');
+
+      // --- INSIDE THE GATE: COMPLETE ALL THEME & STATE RESTORATION SYNCHRONOUSLY ---
+      const targetTheme = returnTheme === 'dark' ? 'dark' : 'light';
+
+      // Immediate synchronous DOM class swap (zero wait for React reconciler)
+      document.documentElement.classList.remove('black-space-theme');
+      document.body.classList.remove('black-space-theme');
+      if (targetTheme === 'light') {
+        document.documentElement.classList.add('light-theme');
+        document.body.classList.add('light-theme');
+      } else {
+        document.documentElement.classList.remove('light-theme');
+        document.body.classList.remove('light-theme');
+      }
+
+      // React state restoration
+      setTheme(targetTheme);
+      setBulbTriggerSignal(0);
       setActiveSectionIndex(0);
       setProjectSlide(0);
-
-      // 2. If on /projects archive, return to '/'
       if (currentPath !== '/') {
         navigate('/');
       }
 
-      // 3. Stop glitch manager and reset Black Space state
+      // Stop glitches and Black Space state
       glitchManager.stop();
       blackSpaceManager.wakeUp();
 
-      // 4. Return theme to White Space
-      setTheme(returnTheme);
-      setBulbTriggerSignal(0);
+      // Immediately purge vignette and dimming CSS variables from DOM
+      document.documentElement.style.removeProperty('--bs-dim');
+      document.documentElement.style.removeProperty('--bs-desat');
+      const vigEl = document.getElementById('bs-vignette');
+      if (vigEl) {
+        vigEl.classList.remove('pulse', 'pulse-strong', 'active');
+        vigEl.style.setProperty('--vig', '0');
+        vigEl.style.setProperty('--vigred', '0');
+        vigEl.style.setProperty('--vig-clear', '56%');
+        vigEl.style.setProperty('--vig-mid', '84%');
+      }
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      // Synchronous reflow forces browser to commit light/dark mode colors right now behind the black gate
+      void document.documentElement.offsetHeight;
+      void document.body.offsetHeight;
+
+      // 3. At 460ms: The room behind the gate is 100% stable in its final theme.
+      // Smoothly lift the black gate curtain (0.44s fade out)
+      window.setTimeout(() => {
+        setWakeUpGate('opening');
+
+        // 4. At 460 + 450ms = 910ms: Curtain is completely transparent and gone.
+        window.setTimeout(() => {
+          setWakeUpGate('idle');
+          // Only re-enable transitions AFTER the black screen is completely unmounted
           document.documentElement.classList.remove('no-theme-transition');
           document.body.classList.remove('no-theme-transition');
-        });
-      });
-    }, 350);
-
-    // End transition at 950ms (screen smoothly opens back up, revealing White Space)
-    window.setTimeout(() => {
-      setIsWakingUp(false);
-    }, 950);
+        }, 450);
+      }, 140);
+    }, 320);
   };
 
   // Toggle Room Dimension (strictly requiring puzzle completion if in Black Space)
@@ -435,31 +477,22 @@ const MainPortfolioApp: React.FC = () => {
   return (
     <div
       className={`min-h-screen bg-[var(--bg-color)] text-[var(--text-main)] ${
-        isEnteringBlackSpace || isWakingUp ? '' : 'transition-colors duration-500'
+        entryGate !== 'idle' || wakeUpGate !== 'idle' ? '' : 'transition-colors duration-500'
       } selection:bg-[var(--accent-red)] selection:text-white font-mono relative`}
     >
       
-      {/* Omori Atmospheric Splash Screen (Only on Home/Landing page) */}
-      {!isProjectsPage && showSplash && (
-        <SplashScreen
-          theme={theme}
-          onDismiss={handleDismissSplash}
-          isDataLoaded={!projectsLoading && !profileLoading}
-        />
-      )}
-
-      {/* Restrained Wake-Up Transition Overlay */}
-      {isWakingUp && (
+      {/* Restrained Wake-Up Transition Gate */}
+      {wakeUpGate !== 'idle' && (
         <div
-          className="wake-up-overlay fixed inset-0 z-60 pointer-events-auto"
+          className={`transition-gate gate-${wakeUpGate}`}
           aria-hidden="true"
         />
       )}
 
-      {/* Dramatic Electrical Flicker Entry Overlay into Black Space */}
-      {isEnteringBlackSpace && (
+      {/* Dramatic Electrical Flicker Entry Transition Gate into Black Space */}
+      {entryGate !== 'idle' && (
         <div
-          className="black-space-entry-overlay fixed inset-0 z-60 pointer-events-auto"
+          className={`transition-gate gate-${entryGate}`}
           aria-hidden="true"
         />
       )}
@@ -625,6 +658,15 @@ const MainPortfolioApp: React.FC = () => {
             )}
           </KeyboardHud>
         </>
+      )}
+
+      {/* Omori Atmospheric Splash Screen (Only on Home/Landing page, guaranteed top-most layer) */}
+      {!isProjectsPage && showSplash && (
+        <SplashScreen
+          theme={theme}
+          onDismiss={handleDismissSplash}
+          isDataLoaded={!projectsLoading && !profileLoading}
+        />
       )}
 
     </div>

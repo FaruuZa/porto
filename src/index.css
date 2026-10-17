@@ -522,58 +522,48 @@ body.mobile-menu-open .mobile-section-badge {
 
 /* Disable transitions during blackout theme swap so it snaps instantly behind the curtain */
 .no-theme-transition,
-.no-theme-transition *,
+.no-theme-transition *:not(.transition-gate):not(.transition-gate *),
 .no-theme-transition *::before,
 .no-theme-transition *::after {
   transition: none !important;
 }
 
-/* Restrained Wake Up transition sequence */
-.wake-up-overlay {
+/* Deterministic Transition Gate: 100% opaque curtain holding all DOM theme changes */
+.transition-gate {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 9999;
   background-color: #000000;
   pointer-events: all;
-  animation: wakeUpSequence 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity;
 }
 
-/* Pure Blackout / Black Space Entry Sequence (smooth dark fade, zero color flicker) */
-.black-space-entry-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background-color: #000000;
-  pointer-events: all;
-  animation: enterBlackSpaceSequence 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.transition-gate.gate-closing {
+  animation: gateCloseAnim 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
-@keyframes enterBlackSpaceSequence {
-  0% {
+.transition-gate.gate-closed {
+  opacity: 1 !important;
+}
+
+.transition-gate.gate-opening {
+  animation: gateOpenAnim 0.44s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes gateCloseAnim {
+  from {
     opacity: 0;
   }
-  30% {
+  to {
     opacity: 1;
-  }
-  65% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
   }
 }
 
-@keyframes wakeUpSequence {
-  0% {
-    opacity: 0;
-  }
-  30% {
+@keyframes gateOpenAnim {
+  from {
     opacity: 1;
   }
-  55% {
-    opacity: 1;
-  }
-  100% {
+  to {
     opacity: 0;
   }
 }
