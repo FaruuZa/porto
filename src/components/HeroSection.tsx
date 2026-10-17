@@ -318,9 +318,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               )}
             </div>
 
-            {isBlackSpace && (
+            {isBlackSpace ? (
               <span data-no-glitch="true" className="text-[10px] text-[var(--text-muted)] font-mono tracking-wider opacity-80 hidden sm:inline font-bold">
                 [RECORD_#01]
+              </span>
+            ) : (
+              <span className="font-handwriting text-xs sm:text-sm text-[var(--accent-red)] text-line-boil select-none hidden sm:inline">
+                ~ {lang === 'id' ? 'tarik kawat bohlam' : 'pull the bulb cord'}
               </span>
             )}
           </div>

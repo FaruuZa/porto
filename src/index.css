@@ -443,6 +443,22 @@ body.mobile-menu-open .mobile-section-badge {
   will-change: filter, transform;
 }
 
+/* Authentic 2-Frame Hand-Drawn Line Boil for Typography (Crisp vector rendering, zero blur) */
+@keyframes textLineBoil2Frame {
+  0%, 49.99% {
+    transform: translate(0, 0) rotate(-0.4deg);
+  }
+  50%, 100% {
+    transform: translate(0.5px, -0.35px) rotate(0.4deg);
+  }
+}
+
+.text-line-boil {
+  display: inline-block;
+  animation: textLineBoil2Frame 0.42s steps(1) infinite;
+  will-change: transform;
+}
+
 /* Visceral Omori Ink Splatter Explosion Effect */
 @keyframes inkExplode {
   0% {

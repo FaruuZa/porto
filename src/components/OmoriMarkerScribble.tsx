@@ -7,7 +7,7 @@ interface OmoriMarkerScribbleProps {
 }
 
 /**
- * Handcrafted natural black marker scribbles inspired by OMORI Black Space / Basil's damaged photo album
+ * Handcrafted natural black marker scribbles inspired by OMORI Black Space marker scratches
  * Features 9 distinct organic scribble variations mirroring genuine physical felt-tip marker scratches.
  */
 export const OmoriMarkerScribble: React.FC<OmoriMarkerScribbleProps> = ({

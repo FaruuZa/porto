@@ -11,6 +11,7 @@ import { getLocalizedText } from '../utils/projectHelpers';
 import { PlaceholderIcon } from '../components/PlaceholderIcon';
 import { urlFor } from '../sanity/client';
 import { OmoriMarkerScribble } from '../components/OmoriMarkerScribble';
+import { KeyboardHud } from '../components/KeyboardHud';
 
 interface ProjectsPageProps {
   onBack: () => void;
@@ -157,7 +158,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
     <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-main)] font-mono transition-colors duration-500 pt-16 sm:pt-20 select-none">
       
       {/* Main Content Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-24 sm:pb-32">
         
         {/* Back Navigation Breadcrumb */}
         <div className="mb-6">
@@ -317,18 +318,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
       </main>
 
       {/* Bottom-Right Keyboard Controls HUD (PC/Desktop Only) */}
-      <div
-        className="hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2.5 px-3 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] shadow-xl select-none"
-        title="Keyboard Controls"
-      >
-        <span className="w-2 h-2 bg-[var(--accent-red)] inline-block" />
+      <KeyboardHud lang={lang}>
         <span>
           <kbd className="font-bold text-[var(--accent-red)]">[ESC / B]</kbd> {lang === 'id' ? 'Kembali' : 'Back'} <span className="opacity-40">|</span>{' '}
           <kbd className="font-bold text-[var(--accent-red)]">[W/S/A/D / Panah]</kbd> {lang === 'id' ? 'Pilih' : 'Select'} <span className="opacity-40">|</span>{' '}
           <kbd className="font-bold text-[var(--accent-red)]">[ENTER / I]</kbd> {lang === 'id' ? 'Buka Info' : 'Open Info'} <span className="opacity-40">|</span>{' '}
           <kbd className="font-bold text-[var(--accent-red)]">[/]</kbd> {lang === 'id' ? 'Cari' : 'Search'}
         </span>
-      </div>
+      </KeyboardHud>
 
       {/* Reusable OMORI DIALOGUE-BOX DETAIL & GALLERY MODAL */}
       {detailProject && (

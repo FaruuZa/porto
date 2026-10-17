@@ -108,6 +108,12 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
             )}
           </div>
 
+          {!isBlackSpace && (
+            <div className="font-handwriting text-xs sm:text-sm text-[var(--accent-red)] text-line-boil mb-4 select-none">
+              ~ {lang === 'id' ? 'surel selalu terbuka untuk diskusi' : 'inbox is always open for ideas'}
+            </div>
+          )}
+
           {/* Action Direct Links */}
           <div className="flex flex-col sm:flex-row justify-center gap-3 mb-4 relative">
             {githubUrl && (

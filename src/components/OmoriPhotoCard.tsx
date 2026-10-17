@@ -21,11 +21,11 @@ interface OmoriPhotoCardProps {
   isSelected?: boolean;
 }
 
-const getBasilMemoryNote = (project?: ProjectItem | null, lang: 'id' | 'en' = 'id'): string => {
+const getProjectMemoryNote = (project?: ProjectItem | null, lang: 'id' | 'en' = 'id'): string => {
   if (!project) {
     return lang === 'id'
-      ? 'Sebuah momen berharga yang tersimpan hangat di halaman album ini.'
-      : 'A precious moment kept safe in this album page.';
+      ? 'Catatan pengerjaan dan memori teknis proyek.'
+      : 'Project technical notes and build reflections.';
   }
 
   if ((project as any)?.memoryNote) {
@@ -64,13 +64,13 @@ const getBasilMemoryNote = (project?: ProjectItem | null, lang: 'id' | 'en' = 'i
   const desc = getProjectShortDescription(project, lang, 120);
   if (desc) {
     return lang === 'id'
-      ? `Kenangan saat mengerjakan sistem ini: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`
-      : `Memories of putting together this system: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`;
+      ? `Catatan teknis pengerjaan: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`
+      : `Technical notes on building this: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`;
   }
 
   return lang === 'id'
-    ? 'Sebuah momen berharga yang tersimpan hangat di halaman album ini.'
-    : 'A precious moment kept safe in this album page.';
+    ? 'Catatan pengerjaan dan memori teknis proyek.'
+    : 'Project technical notes and build reflections.';
 };
 
 interface PolaroidBackSheetProps {
@@ -93,7 +93,7 @@ const PolaroidBackSheet: React.FC<PolaroidBackSheetProps> = ({
   compact = false,
 }) => {
   const shortTitle = (title || '').split('—')[0].trim().split(':')[0].trim();
-  const memoryNote = getBasilMemoryNote(project, lang);
+  const memoryNote = getProjectMemoryNote(project, lang);
 
   return (
     <div className="relative w-full h-full bg-[#f4f2ea] dark:bg-[#181822] text-[#22222f] dark:text-[#e0e0ea] flex flex-col justify-between overflow-hidden select-none">
@@ -108,11 +108,11 @@ const PolaroidBackSheet: React.FC<PolaroidBackSheetProps> = ({
       />
 
       {/* Top Section: Peringatan Keamanan & Catatan Pabrik (Factory Technical Stamping) */}
-      <div className="relative z-10 px-2.5 sm:px-3 pt-2 pb-1 border-b border-black/10 dark:border-white/10 flex items-center justify-between text-[7px] sm:text-[7.5px] font-mono tracking-widest text-black/50 dark:text-white/40 uppercase">
-        <span className="truncate mr-2">
+      <div className="relative z-10 px-2 sm:px-2.5 pt-1.5 pb-1 border-b border-black/10 dark:border-white/10 flex items-center justify-between text-[6.5px] sm:text-[7px] font-mono tracking-wider text-black/50 dark:text-white/40 uppercase whitespace-nowrap overflow-hidden">
+        <span className="truncate mr-1 font-semibold">
           {lang === 'id'
-            ? '• INSTANT FILM • JANGAN LIPAT ATAU KUPAS'
-            : '• INSTANT FILM • DO NOT BEND OR PEEL'}
+            ? '• INSTANT FILM • JANGAN LIPAT'
+            : '• INSTANT FILM • DO NOT BEND'}
         </span>
         <span className="shrink-0 font-bold opacity-75">
           {isBlackSpace ? 'EMULSION-VOID' : 'TYPE-B 600'}
@@ -120,41 +120,43 @@ const PolaroidBackSheet: React.FC<PolaroidBackSheetProps> = ({
       </div>
 
       {/* Middle Section: Area Tulis (Handwritten Note in Basil / Owner pen ink) */}
-      <div className="relative z-10 flex-1 px-3 sm:px-4 py-1.5 flex flex-col justify-center">
-        {/* Subtle lined notebook / cardstock ruling guidelines */}
-        <div className="relative pb-1.5 border-b border-black/[0.08] dark:border-white/[0.08]">
-          <div className="flex items-center justify-between text-[7px] sm:text-[7.5px] font-mono tracking-wider text-black/45 dark:text-white/35 uppercase mb-1">
-            <span>{lang === 'id' ? '[ CATATAN BASIL ]' : "[ BASIL'S MEMO ]"}</span>
-            <span className="font-bold tracking-normal opacity-75 truncate max-w-[120px]">{shortTitle}</span>
+      <div className="relative z-10 flex-1 px-3 sm:px-3.5 py-2 flex flex-col justify-between overflow-hidden">
+        {/* Lined cardstock ruling with spacious handwritten note */}
+        <div className="relative pb-1.5 border-b border-black/[0.08] dark:border-white/[0.08] flex-1 flex flex-col justify-start">
+          <div className="flex items-center justify-between text-[6.5px] sm:text-[7px] font-mono tracking-wider text-black/45 dark:text-white/35 uppercase mb-2 shrink-0">
+            <span className="font-semibold shrink-0">{lang === 'id' ? '[ CATATAN BASIL ]' : "[ BASIL'S MEMO ]"}</span>
+            <span className="font-bold tracking-normal opacity-75 truncate max-w-[95px] sm:max-w-[115px] ml-1 text-right">{shortTitle}</span>
           </div>
-          <p
-            className={`font-handwriting font-bold ${
-              compact ? 'text-[13.5px] sm:text-[15px]' : 'text-[15px] sm:text-[17px]'
-            } leading-snug text-[#1e1e2d] dark:text-[#f2f2fc] line-clamp-3`}
-          >
-            "{memoryNote}"
-          </p>
+          <div className="flex-1 flex items-center pt-0.5">
+            <p
+              className={`font-handwriting font-bold ${
+                compact ? 'text-[13px] sm:text-[14.5px]' : 'text-[14.5px] sm:text-[16px]'
+              } leading-snug text-[#1e1e2d] dark:text-[#f2f2fc] line-clamp-3`}
+            >
+              "{memoryNote}"
+            </p>
+          </div>
         </div>
 
         {/* Location & Date with razor-sharp inline SVGs (no emojis) */}
-        <div className="pt-1.5 flex items-center justify-between font-handwriting text-xs sm:text-sm text-[#3b3b4f] dark:text-[#b4b4c8]">
-          <span className="flex items-center gap-1.5">
+        <div className="pt-2 flex items-center justify-between font-handwriting text-[11px] sm:text-xs text-[#3b3b4f] dark:text-[#b4b4c8] shrink-0 mt-auto">
+          <span className="flex items-center gap-1 min-w-0">
             {/* Inline sharp vector map pin in red */}
             <svg
-              className="w-3.5 h-3.5 inline-block shrink-0 text-[#e11d48] dark:text-[#ff4455] drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]"
+              className="w-3 h-3 inline-block shrink-0 text-[#e11d48] dark:text-[#ff4455] drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]"
               viewBox="0 0 24 24"
               fill="currentColor"
               aria-hidden="true"
             >
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" />
             </svg>
-            <span>{location || (isBlackSpace ? 'Faraway Town' : 'Jember, ID')}</span>
+            <span className="truncate max-w-[110px]">{location || 'Polije, Jember'}</span>
           </span>
 
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1 shrink-0 ml-2">
             {/* Inline sharp vector calendar */}
             <svg
-              className="w-3 h-3 inline-block shrink-0 opacity-60 text-current"
+              className="w-2.5 h-2.5 inline-block shrink-0 opacity-60 text-current"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -174,19 +176,17 @@ const PolaroidBackSheet: React.FC<PolaroidBackSheetProps> = ({
       </div>
 
       {/* Bottom Section: Bantalan Kimia (Reagent Chemical Pod / Developer Pouch) */}
-      <div className="relative z-10 w-full bg-black/[0.05] dark:bg-black/45 border-t-2 border-black/15 dark:border-white/15 px-2.5 sm:px-3 py-1.5 flex flex-col gap-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)]">
+      <div className="relative z-10 w-full bg-black/[0.05] dark:bg-black/45 border-t-2 border-black/15 dark:border-white/15 px-2 sm:px-2.5 py-1 flex flex-col gap-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] shrink-0">
         {/* Embossed heat-seal crimp line */}
         <div className="w-full border-t border-dashed border-black/15 dark:border-white/15 mb-0.5" />
-        <div className="flex items-center justify-between text-[6.5px] sm:text-[7.5px] font-mono tracking-wider text-black/50 dark:text-white/40 uppercase">
-          <span className="flex items-center gap-1">
-            <span className="w-1 h-1 rounded-full bg-black/40 dark:bg-white/40 inline-block" />
-            <span>
-              {lang === 'id'
-                ? '▲ BANTALAN REAGEN KIMIA ▲'
-                : '▲ CHEMICAL REAGENT POD ▲'}
+        <div className="flex items-center justify-between text-[6px] sm:text-[6.5px] font-mono tracking-wider text-black/50 dark:text-white/40 uppercase whitespace-nowrap overflow-hidden">
+          <span className="flex items-center gap-1 shrink-0">
+            <span className="w-1 h-1 rounded-full bg-black/40 dark:bg-white/40 inline-block shrink-0" />
+            <span className="whitespace-nowrap">
+              {lang === 'id' ? '▲ REAGEN KIMIA ▲' : '▲ CHEMICAL POD ▲'}
             </span>
           </span>
-          <span className="font-bold">
+          <span className="font-bold shrink-0 whitespace-nowrap ml-1">
             {lang === 'id' ? 'JANGAN DITEKAN' : 'DO NOT PRESS'}
           </span>
         </div>
@@ -244,7 +244,7 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
 
   const hasMultipleRepos = Boolean(repoWebUrl && repoMobileUrl);
 
-  // Basil's photo album scrapbook tilt: tilted at rest, straightens & lifts smoothly on hover
+  // Polaroid scrapbook tilt: tilted at rest, straightens & lifts smoothly on hover
   const tiltAngles = [
     '-rotate-2',
     'rotate-2',
@@ -295,7 +295,7 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
               )}
             </div>
 
-            {/* Basil Hand-Scrawled Marker Polaroid Chin Caption */}
+            {/* Hand-Scrawled Marker Polaroid Chin Caption */}
             <div className="flex-1 flex items-center justify-between px-1 pt-1">
               <span className="font-handwriting font-bold text-base sm:text-lg leading-none text-[#202028] dark:text-[#d6d6e2]">
                 {isBlackSpace ? '???' : (project.location || 'Jember, ID')}
@@ -427,7 +427,7 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
           </span>
         </div>
 
-        {/* Basil Album Photo Frame: 1 cohesive physical unit with photo, smooth tilt hover animation or straightened when selected */}
+        {/* Polaroid Album Photo Frame: 1 cohesive physical unit with photo, smooth tilt hover animation or straightened when selected */}
         {resolvedImageUrl ? (
           <div
             onClick={() => {

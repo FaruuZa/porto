@@ -22,57 +22,57 @@ export const PROJECTS = PROJECTS_DATA;
 export const SKILLS: SkillItem[] = [
   {
     name: "Laravel",
-    category: "framework",
-    level: "Proficient",
-    iconId: "laravel"
-  },
-  {
-    name: "Flutter",
-    category: "framework",
-    level: "Proficient",
-    iconId: "flutter"
-  },
-  {
-    name: "Kotlin",
-    category: "core",
-    level: "Intermediate",
-    iconId: "kotlin"
+    category: "backend",
+    iconId: "laravel",
+    order: 1
   },
   {
     name: "Java",
-    category: "core",
-    level: "Proficient",
-    iconId: "java"
+    category: "backend",
+    iconId: "java",
+    order: 2
+  },
+  {
+    name: "Kotlin",
+    category: "backend",
+    iconId: "kotlin",
+    order: 3
   },
   {
     name: "PHP",
-    category: "core",
-    level: "Proficient",
-    iconId: "php"
+    category: "backend",
+    iconId: "php",
+    order: 4
+  },
+  {
+    name: "Flutter",
+    category: "mobile",
+    iconId: "flutter",
+    order: 1
+  },
+  {
+    name: "JavaScript",
+    category: "mobile",
+    iconId: "code",
+    order: 2
   },
   {
     name: "PostgreSQL",
-    category: "database",
-    level: "Advanced",
-    iconId: "postgres"
+    category: "database-tools",
+    iconId: "postgres",
+    order: 1
   },
   {
     name: "MySQL",
-    category: "database",
-    level: "Proficient",
-    iconId: "mysql"
-  },
-  {
-    name: "JavaScript & HTML/CSS",
-    category: "core",
-    level: "Proficient",
-    iconId: "code"
+    category: "database-tools",
+    iconId: "mysql",
+    order: 2
   },
   {
     name: "Git & GitHub",
-    category: "tool",
-    level: "Proficient",
-    iconId: "git"
+    category: "database-tools",
+    iconId: "git",
+    order: 3
   }
 ];
 

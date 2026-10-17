@@ -41,8 +41,8 @@ export interface ProjectItem {
 export interface SkillItem {
   _id?: string;
   name: string;
-  category: 'core' | 'framework' | 'database' | 'tool' | string;
-  level: 'Proficient' | 'Intermediate' | 'Advanced' | string;
+  category: 'backend' | 'mobile' | 'database-tools' | 'core' | 'framework' | 'database' | 'tool' | string;
+  level?: 'Proficient' | 'Intermediate' | 'Advanced' | string;
   iconId: string;
   order?: number;
 }

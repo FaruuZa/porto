@@ -82,8 +82,8 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
     >
       <div className="section-inner relative">
         {/* Section Header */}
-        <div className="border-b border-[var(--border-color)] pb-3 mb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-2 relative">
-          <div>
+        <div className="border-b border-[var(--border-color)] pb-3 mb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 relative">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span data-no-glitch="true" className="text-xs text-[var(--accent-red)] uppercase tracking-wider font-bold">
                 02. {lang === 'id' ? 'PROYEK' : 'PROJECTS'} // {isBlackSpace ? 'ANOMALIES' : lang === 'id' ? 'PROYEK PILIHAN' : 'FEATURED'}
@@ -110,13 +110,13 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
           </div>
 
           {/* Slider Controls & Counter */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 whitespace-nowrap">
             {/* Slot 0: Alongside slider counter */}
             {projectScribble && projectScribble.slotIndex === 0 && (
               <BlackScribble scribble={projectScribble} className="mr-1" />
             )}
 
-            <span className="text-[11px] text-[var(--text-muted)] font-mono mr-1">
+            <span className="text-[11px] text-[var(--text-muted)] font-mono mr-1 whitespace-nowrap shrink-0 select-none">
               [ 0{currentSlide + 1} / 0{totalSlides} ]
             </span>
 

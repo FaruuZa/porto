@@ -6,9 +6,20 @@ import { blackSpaceManager, BlackSpaceState, ScribbleLocation } from '../utils/b
 import { useLanguage } from '../utils/languageContext';
 import { BlackScribble } from './BlackScribble';
 import { useSanityProfile } from '../sanity/useSanityProfile';
+import { Server, Smartphone, Database, LucideIcon } from 'lucide-react';
+import { SkillItem } from '../types';
 
 interface SkillsSectionProps {
   theme?: ThemeMode;
+}
+
+interface SkillDomain {
+  id: string;
+  pageNum: string;
+  title: string;
+  note: string;
+  icon: LucideIcon;
+  skills: SkillItem[];
 }
 
 export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'light' }) => {
@@ -29,17 +40,72 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'light' })
     return puzzleState.scribbles.find((s) => s.section === 'skills');
   }, [isBlackSpace, puzzleState.scribbles]);
 
+  // Clean domain role grouping (Directly matching Sanity category & sort order)
+  const skillDomains: SkillDomain[] = useMemo(() => {
+    const isBackend = (s: SkillItem) => {
+      const cat = (s.category || '').toLowerCase();
+      if (cat === 'backend') return true;
+      if (cat === 'mobile' || cat === 'client' || cat === 'database-tools' || cat === 'database' || cat === 'tool') return false;
+      const name = s.name.toLowerCase();
+      const id = (s.iconId || '').toLowerCase();
+      return ['laravel', 'php', 'java', 'kotlin', 'spring', 'node', 'express', 'golang', 'rust', 'python'].some(k => name.includes(k) || id.includes(k));
+    };
+
+    const isMobileOrClient = (s: SkillItem) => {
+      const cat = (s.category || '').toLowerCase();
+      if (cat === 'mobile' || cat === 'client') return true;
+      if (cat === 'backend' || cat === 'database-tools' || cat === 'database' || cat === 'tool') return false;
+      const name = s.name.toLowerCase();
+      const id = (s.iconId || '').toLowerCase();
+      return ['flutter', 'javascript', 'typescript', 'react', 'vue', 'html', 'css', 'android', 'ios', 'code'].some(k => name.includes(k) || id.includes(k));
+    };
+
+    const sortByOrder = (a: SkillItem, b: SkillItem) => (a.order ?? 99) - (b.order ?? 99);
+
+    const backend = skills.filter(isBackend).sort(sortByOrder);
+    const mobile = skills.filter((s) => isMobileOrClient(s) && !backend.includes(s)).sort(sortByOrder);
+    const dataTools = skills.filter((s) => !backend.includes(s) && !mobile.includes(s)).sort(sortByOrder);
+
+    return [
+      {
+        id: 'backend',
+        pageNum: 'pg. 01',
+        title: lang === 'id' ? 'backend & systems' : 'backend & systems',
+        note: lang === 'id' ? 'logika server, rest api & oop' : 'server logic, rest apis & oop',
+        icon: Server,
+        skills: backend,
+      },
+      {
+        id: 'client',
+        pageNum: 'pg. 02',
+        title: lang === 'id' ? 'mobile & client' : 'mobile & client',
+        note: lang === 'id' ? 'antarmuka aplikasi & web' : 'mobile apps & web interfaces',
+        icon: Smartphone,
+        skills: mobile,
+      },
+      {
+        id: 'data-tools',
+        pageNum: 'pg. 03',
+        title: lang === 'id' ? 'database & tooling' : 'database & tooling',
+        note: lang === 'id' ? 'relasi data & kolaborasi git' : 'relational data & git versioning',
+        icon: Database,
+        skills: dataTools,
+      },
+    ];
+  }, [skills, lang]);
+
   return (
-    <section
-      id="skills"
-      className="section-shell font-mono"
-    >
+    <section id="skills" className="section-shell font-mono">
       <div className="section-inner relative">
-        {/* Section Header */}
+        {/* Section Header (Sketchbook style with Caveat handwriting & curly arrow) */}
         <div className="section-header relative">
           <div className="flex items-center gap-2">
-            <span data-no-glitch="true" className="text-xs text-[var(--accent-red)] uppercase tracking-wider font-bold">
-              03. {lang === 'id' ? 'KEAHLIAN' : 'SKILLS'} {isBlackSpace ? '// CORRUPTED' : lang === 'id' ? '// TEKNOLOGI & TOOLS' : '// TECH STACK'}
+            <span
+              data-no-glitch="true"
+              className="text-xs text-[var(--accent-red)] uppercase tracking-wider font-bold"
+            >
+              03. {lang === 'id' ? 'KEAHLIAN' : 'SKILLS'}{' '}
+              {isBlackSpace ? '// CORRUPTED' : '// TOOLBOX'}
             </span>
 
             {/* Slot 0: In header next to badge */}
@@ -48,68 +114,118 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'light' })
             )}
           </div>
 
-          <h2 data-no-glitch="true" className="text-xl sm:text-2xl font-bold text-[var(--text-main)] mt-0.5">
+          <h2
+            data-no-glitch="true"
+            className="text-xl sm:text-2xl font-bold text-[var(--text-main)] mt-0.5"
+          >
             {isBlackSpace
               ? 'Corrupted Tech Stack'
               : lang === 'id'
-              ? 'Keahlian & Penguasaan Teknologi'
-              : 'Skills & Technologies'}
+              ? 'Keahlian & Perkakas Kerja'
+              : 'Skills & Everyday Tools'}
           </h2>
-          <div className="text-xs text-[var(--text-muted)] mt-0.5 font-sans">
-            {isBlackSpace ? (
-              <span className="text-[var(--text-muted)] italic">
-                {lang === 'id'
-                  ? 'Kompilasi perkakas dan repositori terdistorsi. Sesuatu hilang...'
-                  : 'Distorted tools and code environments. Something is missing...'}
+
+          {/* Subtitle with Caveat handwritten annotation & arrow doodle */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 font-sans text-xs text-[var(--text-muted)]">
+            <span>
+              {isBlackSpace
+                ? lang === 'id'
+                  ? 'Kompilasi perkakas terdistorsi memori. Sesuatu hilang...'
+                  : 'Distorted tools and code environments. Something is missing...'
+                : lang === 'id'
+                ? 'Teknologi dan bahasa yang saya gunakan untuk merancang sistem.'
+                : 'Technologies and environments I rely on to build working software.'}
+            </span>
+
+            {!isBlackSpace && (
+              <span className="font-handwriting text-sm sm:text-base text-[var(--accent-red)] text-line-boil -rotate-1 select-none">
+                {lang === 'id' ? '~ perkakas andalan harian' : '~ tools I actually build with'}
               </span>
-            ) : (
-              lang === 'id'
-                ? 'Bahasa pemrograman, backend framework, basis data relasional, dan mobile development.'
-                : 'Programming languages, backend frameworks, relational databases, and mobile engineering.'
             )}
           </div>
         </div>
 
-        {/* Skills Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 relative">
-          {skills.map((skill, idx) => (
-            <div
-              key={skill._id || skill.name}
-              onMouseEnter={() => sound.playTextBlip()}
-              className="sketch-border sketch-card p-2.5 sm:p-3 bg-[var(--paper-color)] flex flex-col justify-between group relative"
-            >
-              {/* Slot 1: Nestled inside first card */}
-              {skillsScribble && skillsScribble.slotIndex === 1 && idx === 0 && (
-                <div className="absolute -top-3 -right-2 z-10">
-                  <BlackScribble scribble={skillsScribble} />
-                </div>
-              )}
+        {/* 3 Sketchbook Memo Columns (Unboxed, airy, tape accents, OMORI sketchbook vibe) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 relative items-stretch">
+          {skillDomains.map((domain, colIdx) => {
+            const IconComponent = domain.icon;
+            return (
+              <div
+                key={domain.id}
+                className="omori-card p-3.5 sm:p-4 flex flex-col justify-between relative group select-none"
+              >
+                {/* Scrapbook photo tape accent on top corner */}
+                <div
+                  className={`absolute -top-1.5 ${
+                    colIdx === 0 ? 'left-4 -rotate-3' : colIdx === 1 ? 'left-6 rotate-2' : 'right-5 -rotate-2'
+                  } w-7 h-2 bg-black/10 dark:bg-white/10 border-x border-black/20 pointer-events-none z-10`}
+                />
 
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider">
-                  [{skill.category}]
-                </span>
-                <span
-                  className={`text-[9px] px-1.5 py-0.2 sketch-border font-bold ${
-                    skill.level === 'Advanced' || skill.level === 'Proficient'
-                      ? 'text-[var(--accent-red)] border-[var(--accent-red)]'
-                      : 'text-[var(--text-muted)] border-[var(--border-color)]'
-                  }`}
-                >
-                  {skill.level}
-                </span>
-              </div>
+                {/* Slot 1: Nestled inside first domain column */}
+                {skillsScribble && skillsScribble.slotIndex === 1 && colIdx === 0 && (
+                  <div className="absolute -top-3 -right-2 z-20">
+                    <BlackScribble scribble={skillsScribble} />
+                  </div>
+                )}
 
-              <div className="flex items-center gap-2 sm:gap-2.5">
-                <div className="p-1.5 sketch-border bg-[var(--bg-color)] group-hover:scale-105 transition-transform flex items-center justify-center">
-                  <PlaceholderIcon name={skill.iconId || skill.name.toLowerCase()} size={18} />
+                <div>
+                  {/* Sketchbook Memo Header (Clean pixel title + Caveat handwritten note + page number) */}
+                  <div className="border-b border-dashed border-[var(--border-color)] pb-2 mb-2.5 flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <IconComponent size={13} className="text-[var(--accent-red)] shrink-0" />
+                        <h3 className="text-xs sm:text-sm font-bold text-[var(--text-main)] font-mono lowercase tracking-wide">
+                          {domain.title}
+                        </h3>
+                      </div>
+                      <span className="font-handwriting text-xs text-[var(--text-muted)] block mt-0.5">
+                        ~ {domain.note}
+                      </span>
+                    </div>
+
+                    <span className="font-handwriting text-xs text-[var(--accent-red)] font-semibold shrink-0 pt-0.5">
+                      {domain.pageNum}
+                    </span>
+                  </div>
+
+                  {/* Skills List: AIRY, UNBOXED ROWS (No boxes inside boxes! Just clean notebook dividers, NO klaim kemahiran) */}
+                  <div className="divide-y divide-black/[0.06] dark:divide-white/[0.06]">
+                    {domain.skills.map((skill) => {
+                      const displayName = skill.name.toLowerCase().includes('javascript')
+                        ? 'JavaScript'
+                        : skill.name;
+                      return (
+                        <div
+                          key={skill._id || skill.name}
+                          onMouseEnter={() => sound.playTextBlip()}
+                          className="py-1.5 flex items-center gap-2.5 hover:translate-x-0.5 transition-transform group/skill"
+                        >
+                          <span className="text-[var(--text-muted)] group-hover/skill:text-[var(--accent-red)] transition-colors text-xs font-mono">
+                            •
+                          </span>
+                          <div className="shrink-0 group-hover/skill:scale-110 transition-transform">
+                            <PlaceholderIcon
+                              name={skill.iconId || displayName.toLowerCase()}
+                              size={14}
+                            />
+                          </div>
+                          <span className="font-bold text-xs text-[var(--text-main)] truncate font-mono">
+                            {displayName}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="font-bold text-xs sm:text-sm text-[var(--text-main)]">
-                  {skill.name}
+
+                {/* Subtle handwritten memo footer */}
+                <div className="mt-3 pt-2 border-t border-dashed border-[var(--border-color)] flex items-center justify-between text-[11px] font-handwriting text-[var(--text-muted)]">
+                  <span>{domain.skills.length} {lang === 'id' ? 'perkakas siap pakai' : 'items equipped'}</span>
+                  <span className="text-[10px] font-mono text-[var(--accent-red)]">✓</span>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Slot 2: Tucked at bottom right of grid */}
           {skillsScribble && skillsScribble.slotIndex === 2 && (
@@ -122,3 +238,5 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'light' })
     </section>
   );
 };
+
+export default SkillsSection;

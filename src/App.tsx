@@ -12,6 +12,7 @@ import { blackSpaceManager } from './utils/blackSpaceState';
 import { FEATURED_PROJECTS } from './data/projectsData';
 import { LanguageProvider, useLanguage } from './utils/languageContext';
 import { SplashScreen } from './components/SplashScreen';
+import { KeyboardHud } from './components/KeyboardHud';
 import { useSanityProjects } from './sanity/useSanityProjects';
 import { useSanityProfile } from './sanity/useSanityProfile';
 import { Analytics } from '@vercel/analytics/react';
@@ -556,11 +557,7 @@ const MainPortfolioApp: React.FC = () => {
           )}
 
           {/* Bottom-Right Keyboard Controls HUD (PC/Desktop Only) */}
-          <div
-            className="hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2.5 px-3 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] shadow-xl select-none"
-            title="Keyboard Controls"
-          >
-            <span className="w-2 h-2 bg-[var(--accent-red)] inline-block" />
+          <KeyboardHud lang={lang}>
             {SECTIONS[activeSectionIndex] === 'projects' ? (
               <span>
                 <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> {lang === 'id' ? 'Bagian' : 'Section'} <span className="opacity-40">|</span>{' '}
@@ -577,7 +574,7 @@ const MainPortfolioApp: React.FC = () => {
                 <kbd className="font-bold text-[var(--accent-red)]">[W/S]</kbd> {lang === 'id' ? 'Pindah Bagian' : 'Move Section'}
               </span>
             )}
-          </div>
+          </KeyboardHud>
         </>
       )}
 
