@@ -79,7 +79,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const handleNavClick = (sectionId: string) => {
-    sound.playSelect();
     setMobileMenuOpen(false);
     onNavigateSection?.(sectionId);
   };
@@ -99,7 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full z-40 bg-[var(--bg-color)] border-b border-[var(--border-color)] transition-colors duration-500 select-none">
+    <header className="fixed top-0 left-0 w-full z-50 bg-[var(--bg-color)] border-b border-[var(--border-color)] transition-colors duration-500 select-none">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 h-13 sm:h-14 flex items-center justify-between font-mono text-xs">
         
         {/* Branding Logo */}
@@ -110,9 +109,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             handleNavClick('hero');
           }}
           onMouseEnter={handleNavHover}
-          className="font-bold tracking-wider text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-[var(--accent-red)] focus-visible:outline-none"
+          className={`font-bold tracking-wider text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent-red)] focus-visible:outline-none ${
+            isBlackSpace ? 'text-stone-500 opacity-60 hover:opacity-90' : 'hover:opacity-80'
+          }`}
         >
-          <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 bg-[var(--accent-red)] inline-block"></span>
+          <span className={`w-2 sm:w-2.5 h-2 sm:h-2.5 inline-block ${isBlackSpace ? 'bg-red-950/80 border border-red-900/40' : 'bg-[var(--accent-red)]'}`}></span>
           <span data-glitch="true">{`${(profile.nickname || profile.name || 'FAZA').toUpperCase()}.DEV`}</span>
         </a>
 
@@ -126,8 +127,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => handleNavClick(item.id)}
                 onMouseEnter={handleNavHover}
                 aria-current={isActive ? 'true' : undefined}
-                className={`press cursor-pointer py-1 flex items-center gap-1 font-mono border-b-2 ${
-                  isActive
+                className={`press cursor-pointer py-1 flex items-center gap-1 font-mono border-b-2 transition-colors ${
+                  isBlackSpace
+                    ? isActive
+                      ? 'text-red-900/80 font-bold border-red-950/80'
+                      : 'text-stone-700 hover:text-stone-400 border-transparent'
+                    : isActive
                     ? 'text-[var(--accent-red)] font-bold border-[var(--accent-red)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)] border-transparent'
                 }`}
@@ -138,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             );
           })}
 
-          <span aria-hidden="true" className="w-px h-4 bg-[var(--border-color)]" />
+          <span aria-hidden="true" className="w-px h-4 bg-[var(--border-color)] opacity-40" />
 
           {/* Language Toggle (ID / EN) */}
           <button
@@ -147,7 +152,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               toggleLang();
             }}
             onMouseEnter={handleNavHover}
-            className="press px-2 py-1 sketch-border font-bold text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--paper-color)] flex items-center gap-1 cursor-pointer"
+            className={`press px-2 py-1 sketch-border font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors ${
+              isBlackSpace
+                ? 'text-stone-600 border-red-950/40 hover:text-stone-400 bg-transparent'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--paper-color)]'
+            }`}
             title="Ganti Bahasa / Switch Language"
             aria-label={lang === 'id' ? 'Ganti bahasa ke English' : 'Switch language to Indonesian'}
           >
@@ -160,8 +169,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={handleToggleSound}
             onMouseEnter={handleNavHover}
             aria-pressed={!isMuted}
-            className={`press px-2.5 py-1 sketch-border font-bold text-[11px] flex items-center gap-1.5 cursor-pointer ${
-              !isMuted
+            className={`press px-2.5 py-1 sketch-border font-bold text-[11px] flex items-center gap-1.5 cursor-pointer transition-colors ${
+              isBlackSpace
+                ? !isMuted
+                  ? 'border-red-950/60 text-red-900/80 bg-[#080208]'
+                  : 'border-red-950/30 text-stone-700 bg-transparent'
+                : !isMuted
                 ? 'bg-[var(--paper-color)] text-[var(--accent-red)] border-[var(--accent-red)]'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--paper-color)]'
             }`}
@@ -245,10 +258,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               setMobileMenuOpen(!mobileMenuOpen);
             }}
             onMouseEnter={handleNavHover}
-            className="press h-9 w-9 sketch-border text-[var(--text-main)] hover:text-[var(--accent-red)] flex items-center justify-center cursor-pointer"
+            className={`press h-9 w-9 sketch-border flex items-center justify-center cursor-pointer relative transition-all ${
+              isBlackSpace && puzzleState.canWakeUp
+                ? 'border-red-600/70 text-red-400 animate-gentle-pulse shadow-[0_0_8px_rgba(220,38,38,0.25)]'
+                : 'text-[var(--text-main)] hover:text-[var(--accent-red)]'
+            }`}
             aria-label={mobileMenuOpen ? (lang === 'id' ? 'Tutup menu' : 'Buka menu') : (lang === 'id' ? 'Buka menu' : 'Open menu')}
             aria-expanded={mobileMenuOpen}
           >
+            {isBlackSpace && puzzleState.canWakeUp && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse pointer-events-none" />
+            )}
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
@@ -312,33 +332,42 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </button>
 
-              <button
-                onClick={() => {
-                  if (isBlackSpace && !puzzleState.canWakeUp) return;
-                  handleThemeClick();
-                  setMobileMenuOpen(false);
-                }}
-                disabled={isBlackSpace && !puzzleState.canWakeUp}
-                aria-disabled={isBlackSpace && !puzzleState.canWakeUp}
-                className={`press w-full py-3 px-3.5 sketch-border flex items-center justify-between ${
-                  isBlackSpace
-                    ? puzzleState.canWakeUp
-                      ? 'bg-red-950 border-red-500 text-red-200 font-bold cursor-pointer'
-                      : 'bg-transparent text-red-900/60 border-red-950/60 cursor-not-allowed opacity-60'
-                    : 'text-[var(--text-main)] hover:bg-[var(--paper-color)] cursor-pointer'
-                }`}
-              >
-                <span>{lang === 'id' ? 'Dimensi Ruangan' : 'Room Dimension'}</span>
-                <span className="text-[11px] font-bold">
-                  {isBlackSpace
-                    ? puzzleState.canWakeUp
-                      ? 'Wake up'
-                      : '???'
-                    : theme === 'light'
-                    ? (lang === 'id' ? 'TERANG' : 'LIGHT')
-                    : (lang === 'id' ? 'GELAP' : 'DARK')}
-                </span>
-              </button>
+              {isBlackSpace ? (
+                <button
+                  onClick={() => {
+                    if (!puzzleState.canWakeUp) return;
+                    handleThemeClick();
+                    setMobileMenuOpen(false);
+                  }}
+                  disabled={!puzzleState.canWakeUp}
+                  aria-disabled={!puzzleState.canWakeUp}
+                  className={`press w-full py-3.5 px-4 sketch-border flex items-center justify-center font-mono text-center transition-all ${
+                    puzzleState.canWakeUp
+                      ? 'bg-red-950/90 border-red-500 text-red-100 font-bold tracking-widest text-sm shadow-[0_0_12px_rgba(220,38,38,0.4)] cursor-pointer'
+                      : 'bg-[#09040a] text-red-950 border-red-950/40 cursor-not-allowed text-xs opacity-60'
+                  }`}
+                  aria-label={puzzleState.canWakeUp ? 'Bangun dari Black Space' : 'Terkunci'}
+                >
+                  <span className="tracking-widest">
+                    {puzzleState.canWakeUp ? '[ WAKE UP ]' : '[ ??? ]'}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    handleThemeClick();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="press w-full py-3 px-3.5 sketch-border flex items-center justify-between text-[var(--text-main)] hover:bg-[var(--paper-color)] cursor-pointer"
+                >
+                  <span>{lang === 'id' ? 'Tema Tampilan' : 'Theme Mode'}</span>
+                  <span className="text-[11px] font-bold">
+                    {theme === 'light'
+                      ? (lang === 'id' ? 'TERANG' : 'LIGHT')
+                      : (lang === 'id' ? 'GELAP' : 'DARK')}
+                  </span>
+                </button>
+              )}
             </div>
 
           </div>

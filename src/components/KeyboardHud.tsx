@@ -63,7 +63,7 @@ export const KeyboardHud: React.FC<KeyboardHudProps> = ({
       <button
         onClick={toggleCollapsed}
         type="button"
-        className={`hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2 px-2.5 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] shadow-xl transition-all cursor-pointer group select-none ${className}`}
+        className={`keyboard-hud hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2 px-2.5 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] shadow-xl transition-all cursor-pointer group select-none ${className}`}
         title={lang === 'id' ? 'Tampilkan Petunjuk Kontrol [H / ?]' : 'Show Keyboard Controls [H / ?]'}
         aria-label={lang === 'id' ? 'Buka petunjuk tombol keyboard' : 'Open keyboard shortcuts'}
       >
@@ -79,7 +79,7 @@ export const KeyboardHud: React.FC<KeyboardHudProps> = ({
 
   return (
     <div
-      className={`hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2.5 px-3 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] shadow-xl select-none ${className}`}
+      className={`keyboard-hud hidden md:flex fixed bottom-4 right-4 z-40 items-center gap-2.5 px-3 py-1.5 sketch-border bg-[var(--paper-color)] text-[11px] font-mono text-[var(--text-muted)] shadow-xl select-none ${className}`}
       title={lang === 'id' ? 'Petunjuk Keyboard (Tekan H untuk ciutkan)' : 'Keyboard Controls (Press H to collapse)'}
     >
       <span className="w-2 h-2 bg-[var(--accent-red)] inline-block shrink-0" />

@@ -3,9 +3,12 @@ import {
   audioSynthesizer,
   playSakelarSFX,
   playLampuKedipSFX,
-  playBlackSpaceTriggerSFX
+  playBlackSpaceTriggerSFX,
+  playBulbBuzzSFX
 } from './audioSynthesizer';
 import { audioManager } from './audioManager';
+import { ambientSoundscape } from './ambientSoundscape';
+import { blackSpaceAudio } from './blackSpaceAudio';
 
 export const sound = {
   // Unified Sound Control (BGM + SFX simultaneously)
@@ -24,6 +27,7 @@ export const sound = {
   playSecret: () => audioSynthesizer.playSecret(),
   playGlitch: () => audioSynthesizer.playBlackSpaceTriggerSFX(),
   playWakeUp: () => audioSynthesizer.playWakeUp(),
+  playBulbBuzzSFX: (intensity?: 'gentle' | 'strong') => audioSynthesizer.playBulbBuzzSFX(intensity),
   playSakelarSFX,
   playLampuKedipSFX,
   playBlackSpaceTriggerSFX,
@@ -31,8 +35,11 @@ export const sound = {
 
 export {
   audioSynthesizer,
+  ambientSoundscape,
+  blackSpaceAudio,
   audioManager,
   playSakelarSFX,
   playLampuKedipSFX,
-  playBlackSpaceTriggerSFX
+  playBlackSpaceTriggerSFX,
+  playBulbBuzzSFX
 };

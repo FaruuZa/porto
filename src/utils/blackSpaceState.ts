@@ -6,13 +6,13 @@ export type BlackSpaceSection = 'hero' | 'projects' | 'skills' | 'profile' | 'co
 export interface ScribbleLocation {
   section: BlackSpaceSection;
   slotIndex: number; // 0, 1, or 2 (subtle layout slot variation)
-  variant: 0 | 1 | 2; // Hand-drawn SVG doodle shape variation
+  variant: 0 | 1 | 2 | 3 | 4; // Hand-drawn SVG vandalism doodle variation
   id: string;
 }
 
 export interface BlackSpaceState {
   isActive: boolean;
-  totalRequired: number; // Exactly 3 scribbles required
+  totalRequired: number; // Exactly 5 scribbles required
   foundCount: number;
   foundScribbleIds: string[];
   canWakeUp: boolean;
@@ -24,7 +24,7 @@ const ALL_SECTIONS: BlackSpaceSection[] = ['hero', 'projects', 'skills', 'profil
 class BlackSpaceManager {
   private isActive: boolean = false;
   private foundScribbleIds: Set<string> = new Set();
-  private readonly totalRequired: number = 3;
+  private readonly totalRequired: number = 5;
   private scribbles: ScribbleLocation[] = [];
   private listeners: Set<(state: BlackSpaceState) => void> = new Set();
 
@@ -52,27 +52,19 @@ class BlackSpaceManager {
 
   /**
    * Called when entering Black Space via the hanging bulb:
-   * Selects exactly 3 distinct sections out of the 5 available sections,
-   * randomizes their slot positions and visual variants, and resets progress for this session.
+   * Populates all 5 sections (hero, projects, skills, profile, contact) with exactly
+   * 1 hidden vandalism scribble each at randomized slot positions (0, 1, or 2).
    */
   public enterBlackSpace(): void {
     this.isActive = true;
     this.foundScribbleIds.clear();
 
-    // Fisher-Yates shuffle to pick exactly 3 distinct sections
-    const shuffled = [...ALL_SECTIONS];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-
-    const selectedSections = shuffled.slice(0, 3);
     const sessionTimestamp = Date.now();
 
-    this.scribbles = selectedSections.map((sec, idx) => ({
+    this.scribbles = ALL_SECTIONS.map((sec, idx) => ({
       section: sec,
       slotIndex: Math.floor(Math.random() * 3), // 0, 1, or 2 within that section
-      variant: (idx % 3) as 0 | 1 | 2,
+      variant: (idx % 5) as 0 | 1 | 2 | 3 | 4,
       id: `scribble-${sec}-${sessionTimestamp}-${idx}`,
     }));
 

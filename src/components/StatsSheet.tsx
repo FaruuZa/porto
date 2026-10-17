@@ -94,9 +94,9 @@ export const StatsSheet: React.FC<StatsSheetProps> = ({ theme = 'light' }) => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 sm:gap-4 relative items-stretch">
           
           {/* LEFT: Student Character Dossier / Memo Card (md:col-span-5) */}
-          <div className="md:col-span-5 omori-card p-4 sm:p-4.5 flex flex-col justify-between relative group select-none">
-            {/* Scrapbook photo tape accent on top corner */}
-            <div className="absolute -top-1.5 left-5 w-8 h-2.5 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-3 pointer-events-none z-10" />
+          <div className="md:col-span-5 omori-card p-4 sm:p-4.5 flex flex-col justify-between relative group select-none -rotate-1 hover:rotate-0 hover:scale-[1.015] transition-all duration-300 ease-out cursor-default shadow-[0_3px_10px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_22px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.65)]">
+            {/* Scrapbook photo tape accent centered on top */}
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-3 bg-black/15 dark:bg-white/15 border-x border-black/25 -rotate-1 pointer-events-none z-10 shadow-[0_1px_2px_rgba(0,0,0,0.08)]" />
 
             {/* Slot 1: Nestled in character card */}
             {profileScribble && profileScribble.slotIndex === 1 && (
@@ -188,9 +188,9 @@ export const StatsSheet: React.FC<StatsSheetProps> = ({ theme = 'light' }) => {
           </div>
 
           {/* RIGHT: Academic Curriculum & Language Dossier (md:col-span-7) */}
-          <div className="md:col-span-7 omori-card p-4 sm:p-4.5 flex flex-col justify-between relative group select-none">
-            {/* Scrapbook photo tape accent on top right */}
-            <div className="absolute -top-1.5 right-6 w-8 h-2.5 bg-black/10 dark:bg-white/10 border-x border-black/20 rotate-2 pointer-events-none z-10" />
+          <div className="md:col-span-7 omori-card p-4 sm:p-4.5 flex flex-col justify-between relative group select-none rotate-1 hover:rotate-0 hover:scale-[1.015] transition-all duration-300 ease-out cursor-default shadow-[0_3px_10px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_22px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.65)]">
+            {/* Scrapbook photo tape accent centered on top */}
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-3 bg-black/15 dark:bg-white/15 border-x border-black/25 rotate-1 pointer-events-none z-10 shadow-[0_1px_2px_rgba(0,0,0,0.08)]" />
 
             <div>
               {/* Section 1: Curriculum & Coursework Focus */}

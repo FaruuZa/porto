@@ -21,56 +21,154 @@ interface OmoriPhotoCardProps {
   isSelected?: boolean;
 }
 
-const getProjectMemoryNote = (project?: ProjectItem | null, lang: 'id' | 'en' = 'id'): string => {
-  if (!project) {
-    return lang === 'id'
-      ? 'Catatan pengerjaan dan memori teknis proyek.'
-      : 'Project technical notes and build reflections.';
-  }
+interface MemoryNoteResult {
+  text: string;
+  struckWord?: string;
+}
 
-  if ((project as any)?.memoryNote) {
-    return getLocalizedText((project as any).memoryNote, lang);
+const getProjectMemoryNote = (
+  project?: ProjectItem | null,
+  lang: 'id' | 'en' = 'id',
+  isBlackSpace: boolean = false
+): MemoryNoteResult => {
+  if (!project) {
+    if (isBlackSpace) {
+      return {
+        text:
+          lang === 'id'
+            ? 'Fragmen memori ini telah rusak dan terhapus dari rekaman...'
+            : 'This memory fragment has degraded and been erased from the record...',
+        struckWord: lang === 'id' ? 'terhapus' : 'erased',
+      };
+    }
+    return {
+      text:
+        lang === 'id'
+          ? 'Catatan pengerjaan dan memori teknis proyek.'
+          : 'Project technical notes and build reflections.',
+    };
   }
 
   const id = (project.id || project.slug || '').toLowerCase();
   const rawTitle = (typeof project.title === 'string' ? project.title : project.title?.en || project.title?.id || '').toLowerCase();
 
+  if (isBlackSpace) {
+    if (id.includes('qlinica') || rawTitle.includes('qlinica')) {
+      return {
+        text:
+          lang === 'id'
+            ? 'Kami terjaga sampai larut malam... tapi catatan antreannya perlahan terhapus dari sistem...'
+            : 'We stayed up late that night... but every attendance log was slowly erased from the system...',
+        struckWord: lang === 'id' ? 'catatan antreannya' : 'attendance log',
+      };
+    }
+    if (id.includes('rahmat') || id.includes('bakery') || rawTitle.includes('bakery')) {
+      return {
+        text:
+          lang === 'id'
+            ? 'Aroma hangat itu sudah lama hilang... menyisakan pesanan kosong yang tak pernah sampai...'
+            : 'The warm scent has long faded... leaving only hollow orders that never arrived...',
+        struckWord: lang === 'id' ? 'pesanan kosong' : 'hollow orders',
+      };
+    }
+    if (id.includes('card-clash') || id.includes('inferior') || rawTitle.includes('card clash')) {
+      return {
+        text:
+          lang === 'id'
+            ? 'Tidak ada giliran berikutnya. Semua kartunya terbakar sebelum sempat ditarik dari dek...'
+            : 'There is no next turn. Every card burns before anyone can draw them from the deck...',
+        struckWord: lang === 'id' ? 'Semua kartunya' : 'Every card',
+      };
+    }
+    if (id.includes('kitchen') || id.includes('pos') || rawTitle.includes('kitchenshell')) {
+      return {
+        text:
+          lang === 'id'
+            ? 'Pemindai terus berbunyi di ruangan kosong, mencatat transaksi yang tidak pernah ada...'
+            : 'The scanner keeps beeping in an empty room, registering transactions that never existed...',
+        struckWord: lang === 'id' ? 'transaksi' : 'transactions',
+      };
+    }
+    if (id.includes('omori') || id.includes('white-space') || rawTitle.includes('white space') || rawTitle.includes('portfolio')) {
+      return {
+        text:
+          lang === 'id'
+            ? 'Lampu gantung itu terus berayun di kegelapan. Jangan biarkan ruang hening ini lenyap...'
+            : 'The lightbulb keeps swinging in the dark. Don\'t let the quiet space slip away...',
+        struckWord: lang === 'id' ? 'ruang hening ini' : 'quiet space',
+      };
+    }
+
+    return {
+      text:
+        lang === 'id'
+          ? 'Fragmen memori ini telah rusak dan terhapus dari rekaman arsip...'
+          : 'This memory fragment has degraded and been wiped from the archive...',
+      struckWord: lang === 'id' ? 'terhapus' : 'wiped',
+    };
+  }
+
+  if ((project as any)?.memoryNote) {
+    return { text: getLocalizedText((project as any).memoryNote, lang) };
+  }
+
   if (id.includes('qlinica') || rawTitle.includes('qlinica')) {
-    return lang === 'id'
-      ? 'Waktu itu kami menyinkronkan data presensi mobile dan antrean klinik sampai larut malam...'
-      : 'We stayed up late that night getting real-time mobile attendance and clinical queues in sync...';
+    return {
+      text:
+        lang === 'id'
+          ? 'Waktu itu kami menyinkronkan data presensi mobile dan antrean klinik sampai larut malam...'
+          : 'We stayed up late that night getting real-time mobile attendance and clinical queues in sync...',
+    };
   }
   if (id.includes('rahmat') || id.includes('bakery') || rawTitle.includes('bakery')) {
-    return lang === 'id'
-      ? 'Teringat aroma hangat roti manis saat merapikan alur pemesanan dari web ke Android...'
-      : 'Still remembering the smell of fresh bread while testing catalog orders from web to Android...';
+    return {
+      text:
+        lang === 'id'
+          ? 'Teringat aroma hangat roti manis saat merapikan alur pemesanan dari web ke Android...'
+          : 'Still remembering the smell of fresh bread while testing catalog orders from web to Android...',
+    };
   }
   if (id.includes('card-clash') || id.includes('inferior') || rawTitle.includes('card clash')) {
-    return lang === 'id'
-      ? 'Eksperimen strategi kartu seru di mana pemain yang terdesak justru membalikkan keadaan...'
-      : 'A fun card battle idea where being on the back foot turns the whole tide around...';
+    return {
+      text:
+        lang === 'id'
+          ? 'Eksperimen strategi kartu seru di mana pemain yang terdesak justru membalikkan keadaan...'
+          : 'A fun card battle idea where being on the back foot turns the whole tide around...',
+    };
   }
   if (id.includes('kitchen') || id.includes('pos') || rawTitle.includes('kitchenshell')) {
-    return lang === 'id'
-      ? 'Bunyi "beep" pemindai barcode pertama kali saat sukses mencatat transaksi ke kasir desktop...'
-      : 'That first satisfying barcode beep when transactions clicked into the desktop checkout...';
+    return {
+      text:
+        lang === 'id'
+          ? 'Bunyi "beep" pemindai barcode pertama kali saat sukses mencatat transaksi ke kasir desktop...'
+          : 'That first satisfying barcode beep when transactions clicked into the desktop checkout...',
+    };
   }
   if (id.includes('omori') || id.includes('white-space') || rawTitle.includes('white space') || rawTitle.includes('portfolio')) {
-    return lang === 'id'
-      ? 'Menata ruang hening White Space dengan lampu gantung dan synthesizer audio kenangan...'
-      : 'Crafting the quiet White Space with the hanging lightbulb and nostalgic procedural audio...';
+    return {
+      text:
+        lang === 'id'
+          ? 'Menata ruang hening White Space dengan lampu gantung dan synthesizer audio kenangan...'
+          : 'Crafting the quiet White Space with the hanging lightbulb and nostalgic procedural audio...',
+    };
   }
 
   const desc = getProjectShortDescription(project, lang, 120);
   if (desc) {
-    return lang === 'id'
-      ? `Catatan teknis pengerjaan: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`
-      : `Technical notes on building this: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`;
+    return {
+      text:
+        lang === 'id'
+          ? `Catatan teknis pengerjaan: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`
+          : `Technical notes on building this: ${desc.toLowerCase().replace(/^\w/, (c) => c.toLowerCase())}`,
+    };
   }
 
-  return lang === 'id'
-    ? 'Catatan pengerjaan dan memori teknis proyek.'
-    : 'Project technical notes and build reflections.';
+  return {
+    text:
+      lang === 'id'
+        ? 'Catatan pengerjaan dan memori teknis proyek.'
+        : 'Project technical notes and build reflections.',
+  };
 };
 
 interface PolaroidBackSheetProps {
@@ -93,64 +191,174 @@ const PolaroidBackSheet: React.FC<PolaroidBackSheetProps> = ({
   compact = false,
 }) => {
   const shortTitle = (title || '').split('—')[0].trim().split(':')[0].trim();
-  const memoryNote = getProjectMemoryNote(project, lang);
+  const memoryData = getProjectMemoryNote(project, lang, isBlackSpace);
+
+  const renderMemoryContent = () => {
+    if (isBlackSpace && memoryData.struckWord && memoryData.text.includes(memoryData.struckWord)) {
+      const parts = memoryData.text.split(memoryData.struckWord);
+      return (
+        <>
+          "{parts[0]}
+          <span className="line-through decoration-[#8a1c1c] decoration-[1.5px] text-[#781818] font-bold">
+            {memoryData.struckWord}
+          </span>
+          {parts.slice(1).join(memoryData.struckWord)}"
+        </>
+      );
+    }
+    return `"${memoryData.text}"`;
+  };
 
   return (
-    <div className="relative w-full h-full bg-[#f4f2ea] dark:bg-[#181822] text-[#22222f] dark:text-[#e0e0ea] flex flex-col justify-between overflow-hidden select-none">
-      {/* Authentic photo cardstock fine matte texture / paper grain overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.035] dark:opacity-[0.06] pointer-events-none"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
-          backgroundSize: '8px 8px',
-        }}
-      />
+    <div
+      className={`relative w-full h-full flex flex-col justify-between overflow-hidden select-none ${
+        isBlackSpace
+          ? 'text-[#1e1713] shadow-[inset_0_0_12px_rgba(180,135,70,0.22),_inset_0_0_2px_rgba(120,80,30,0.25)]'
+          : 'bg-[#f4f2ea] dark:bg-[#181822] text-[#22222f] dark:text-[#e0e0ea]'
+      }`}
+      style={
+        isBlackSpace
+          ? {
+              background:
+                'linear-gradient(165deg, #fbf9f4 0%, #f4eee1 40%, #eae0c8 85%, #e2d4b7 100%)',
+            }
+          : undefined
+      }
+    >
+      {/* Authentic cardstock fine texture / Black Space subtle vintage paper specks */}
+      {isBlackSpace ? (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none opacity-20 mix-blend-multiply"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Subtle aged paper faint watermark / light organic aging (putih pudar ke kuning) */}
+          <path
+            d="M -10,30 Q 25,20 40,45 Q 60,65 30,85 Q 10,95 -10,70 Z"
+            fill="#b89c72"
+            opacity="0.35"
+            filter="blur(3px)"
+          />
+          <path
+            d="M 120,60 Q 95,85 70,80 Q 55,60 80,40 Q 110,25 120,60 Z"
+            fill="#9e7c52"
+            opacity="0.25"
+            filter="blur(4px)"
+          />
+          {/* Specks / subtle aging flecks */}
+          <circle cx="28" cy="42" r="1.5" fill="#8c6a40" opacity="0.4" />
+          <circle cx="78" cy="68" r="2" fill="#8c6a40" opacity="0.35" />
+          <circle cx="65" cy="22" r="1.2" fill="#8c6a40" opacity="0.3" />
+        </svg>
+      ) : (
+        <div
+          className="absolute inset-0 opacity-[0.035] dark:opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
+            backgroundSize: '8px 8px',
+          }}
+        />
+      )}
 
       {/* Top Section: Peringatan Keamanan & Catatan Pabrik (Factory Technical Stamping) */}
-      <div className="relative z-10 px-2 sm:px-2.5 pt-1.5 pb-1 border-b border-black/10 dark:border-white/10 flex items-center justify-between text-[6.5px] sm:text-[7px] font-mono tracking-wider text-black/50 dark:text-white/40 uppercase whitespace-nowrap overflow-hidden">
+      <div
+        className={`relative z-10 px-2 sm:px-2.5 pt-1.5 pb-1 border-b flex items-center justify-between text-[6.5px] sm:text-[7px] font-mono tracking-wider uppercase whitespace-nowrap overflow-hidden ${
+          isBlackSpace
+            ? 'border-[#8a1c1c]/25 text-[#8a1c1c] bg-[#8a1c1c]/[0.05]'
+            : 'border-black/10 dark:border-white/10 text-black/50 dark:text-white/40'
+        }`}
+      >
         <span className="truncate mr-1 font-semibold">
-          {lang === 'id'
+          {isBlackSpace
+            ? lang === 'id'
+              ? '• FILM RUSAK • EMULSI BOCOR'
+              : '• DECAYED FILM • EMULSION LEAK'
+            : lang === 'id'
             ? '• INSTANT FILM • JANGAN LIPAT'
             : '• INSTANT FILM • DO NOT BEND'}
         </span>
-        <span className="shrink-0 font-bold opacity-75">
-          {isBlackSpace ? 'EMULSION-VOID' : 'TYPE-B 600'}
+        <span className={`shrink-0 font-bold ${isBlackSpace ? 'text-[#8a1c1c]' : 'opacity-75'}`}>
+          {isBlackSpace ? 'VOID-600' : 'TYPE-B 600'}
         </span>
       </div>
 
-      {/* Middle Section: Area Tulis (Handwritten Note in Basil / Owner pen ink) */}
+      {/* Middle Section: Area Tulis (Handwritten Note with Black Space Damaged/Corrupted Text) */}
       <div className="relative z-10 flex-1 px-3 sm:px-3.5 py-2 flex flex-col justify-between overflow-hidden">
         {/* Lined cardstock ruling with spacious handwritten note */}
-        <div className="relative pb-1.5 border-b border-black/[0.08] dark:border-white/[0.08] flex-1 flex flex-col justify-start">
-          <div className="flex items-center justify-between text-[6.5px] sm:text-[7px] font-mono tracking-wider text-black/45 dark:text-white/35 uppercase mb-2 shrink-0">
-            <span className="font-semibold shrink-0">{lang === 'id' ? '[ CATATAN BASIL ]' : "[ BASIL'S MEMO ]"}</span>
-            <span className="font-bold tracking-normal opacity-75 truncate max-w-[95px] sm:max-w-[115px] ml-1 text-right">{shortTitle}</span>
+        <div
+          className={`relative pb-1.5 border-b flex-1 flex flex-col justify-start ${
+            isBlackSpace ? 'border-[#8c7456]/25' : 'border-black/[0.08] dark:border-white/[0.08]'
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between text-[6.5px] sm:text-[7px] font-mono tracking-wider uppercase mb-2 shrink-0 ${
+              isBlackSpace ? 'text-[#8a1c1c]' : 'text-black/45 dark:text-white/35'
+            }`}
+          >
+            <span className="font-semibold shrink-0">
+              {isBlackSpace
+                ? lang === 'id'
+                  ? '[ REKAMAN // RUSAK ]'
+                  : '[ MEMORY // CORRUPTED ]'
+                : lang === 'id'
+                ? '[ CATATAN BASIL ]'
+                : "[ BASIL'S MEMO ]"}
+            </span>
+            <span className="font-bold tracking-normal truncate max-w-[95px] sm:max-w-[115px] ml-1 text-right">
+              {isBlackSpace ? (
+                <span className="line-through decoration-[#8a1c1c] decoration-1 text-[#6b2c2c]">
+                  {shortTitle}
+                </span>
+              ) : (
+                shortTitle
+              )}
+            </span>
           </div>
           <div className="flex-1 flex items-center pt-0.5">
             <p
               className={`font-handwriting font-bold ${
                 compact ? 'text-[13px] sm:text-[14.5px]' : 'text-[14.5px] sm:text-[16px]'
-              } leading-snug text-[#1e1e2d] dark:text-[#f2f2fc] line-clamp-3`}
+              } leading-snug line-clamp-3 ${
+                isBlackSpace
+                  ? 'text-[#1e1713]'
+                  : 'text-[#1e1e2d] dark:text-[#f2f2fc]'
+              }`}
             >
-              "{memoryNote}"
+              {renderMemoryContent()}
             </p>
           </div>
         </div>
 
         {/* Location & Date with razor-sharp inline SVGs (no emojis) */}
-        <div className="pt-2 flex items-center justify-between font-handwriting text-[11px] sm:text-xs text-[#3b3b4f] dark:text-[#b4b4c8] shrink-0 mt-auto">
+        <div
+          className={`pt-2 flex items-center justify-between font-handwriting text-[11px] sm:text-xs shrink-0 mt-auto ${
+            isBlackSpace ? 'text-[#3e2f24]' : 'text-[#3b3b4f] dark:text-[#b4b4c8]'
+          }`}
+        >
           <span className="flex items-center gap-1 min-w-0">
-            {/* Inline sharp vector map pin in red */}
+            {/* Inline sharp vector map pin */}
             <svg
-              className="w-3 h-3 inline-block shrink-0 text-[#e11d48] dark:text-[#ff4455] drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]"
+              className={`w-3 h-3 inline-block shrink-0 ${
+                isBlackSpace
+                  ? 'text-[#8a1c1c]'
+                  : 'text-[#e11d48] dark:text-[#ff4455] drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]'
+              }`}
               viewBox="0 0 24 24"
               fill="currentColor"
               aria-hidden="true"
             >
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" />
             </svg>
-            <span className="truncate max-w-[110px]">{location || 'Polije, Jember'}</span>
+            {isBlackSpace ? (
+              <span className="truncate max-w-[110px]">
+                <span className="line-through decoration-[#8a1c1c] decoration-1 text-[#6b2c2c]">
+                  {location || 'Polije, Jember'}
+                </span>{' '}
+                <span className="text-[#8a1c1c] font-mono font-bold text-[9px]">???</span>
+              </span>
+            ) : (
+              <span className="truncate max-w-[110px]">{location || 'Polije, Jember'}</span>
+            )}
           </span>
 
           <span className="flex items-center gap-1 shrink-0 ml-2">
@@ -170,24 +378,59 @@ const PolaroidBackSheet: React.FC<PolaroidBackSheetProps> = ({
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-            <span>{date || '2024'}</span>
+            {isBlackSpace ? (
+              <span>
+                <span className="line-through decoration-[#8a1c1c] decoration-1 text-[#6b2c2c]">
+                  {date || '2024'}
+                </span>{' '}
+                <span className="text-[#8a1c1c] font-mono font-bold text-[9px]">????</span>
+              </span>
+            ) : (
+              <span>{date || '2024'}</span>
+            )}
           </span>
         </div>
       </div>
 
       {/* Bottom Section: Bantalan Kimia (Reagent Chemical Pod / Developer Pouch) */}
-      <div className="relative z-10 w-full bg-black/[0.05] dark:bg-black/45 border-t-2 border-black/15 dark:border-white/15 px-2 sm:px-2.5 py-1 flex flex-col gap-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] shrink-0">
+      <div
+        className={`relative z-10 w-full px-2 sm:px-2.5 py-1 flex flex-col gap-0.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] shrink-0 border-t-2 ${
+          isBlackSpace
+            ? 'bg-[#ded2b5] border-[#8c7456]/50 text-[#4a3625]'
+            : 'bg-black/[0.05] dark:bg-black/45 border-black/15 dark:border-white/15 text-black/50 dark:text-white/40'
+        }`}
+      >
         {/* Embossed heat-seal crimp line */}
-        <div className="w-full border-t border-dashed border-black/15 dark:border-white/15 mb-0.5" />
-        <div className="flex items-center justify-between text-[6px] sm:text-[6.5px] font-mono tracking-wider text-black/50 dark:text-white/40 uppercase whitespace-nowrap overflow-hidden">
+        <div
+          className={`w-full border-t border-dashed mb-0.5 ${
+            isBlackSpace ? 'border-[#8c7456]/40' : 'border-black/15 dark:border-white/15'
+          }`}
+        />
+        <div className="flex items-center justify-between text-[6px] sm:text-[6.5px] font-mono tracking-wider uppercase whitespace-nowrap overflow-hidden">
           <span className="flex items-center gap-1 shrink-0">
-            <span className="w-1 h-1 rounded-full bg-black/40 dark:bg-white/40 inline-block shrink-0" />
-            <span className="whitespace-nowrap">
-              {lang === 'id' ? '▲ REAGEN KIMIA ▲' : '▲ CHEMICAL POD ▲'}
+            <span
+              className={`w-1 h-1 rounded-full inline-block shrink-0 ${
+                isBlackSpace ? 'bg-[#8a1c1c] animate-pulse' : 'bg-black/40 dark:bg-white/40'
+              }`}
+            />
+            <span className="whitespace-nowrap font-medium">
+              {isBlackSpace
+                ? lang === 'id'
+                  ? '▲ REAGEN BOCOR ▲'
+                  : '▲ CHEMICAL LEAK ▲'
+                : lang === 'id'
+                ? '▲ REAGEN KIMIA ▲'
+                : '▲ CHEMICAL POD ▲'}
             </span>
           </span>
-          <span className="font-bold shrink-0 whitespace-nowrap ml-1">
-            {lang === 'id' ? 'JANGAN DITEKAN' : 'DO NOT PRESS'}
+          <span className={`font-bold shrink-0 whitespace-nowrap ml-1 ${isBlackSpace ? 'text-[#8a1c1c]' : ''}`}>
+            {isBlackSpace
+              ? lang === 'id'
+                ? 'TERKONTAMINASI'
+                : 'CONTAMINATED'
+              : lang === 'id'
+              ? 'JANGAN DITEKAN'
+              : 'DO NOT PRESS'}
           </span>
         </div>
       </div>
@@ -259,7 +502,6 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
   if (layout === 'slider') {
     return (
       <div
-        onMouseEnter={() => sound.playTextBlip()}
         className="group omori-card p-4 sm:p-5 min-h-[420px] sm:min-h-0 sm:h-[315px] flex flex-col sm:flex-row gap-4 sm:gap-6 justify-between select-none hover:!translate-y-0 hover:!transform-none"
       >
         {/* Left Side: Authentic Polaroid Asli / Instax Square (1:1.2 total paper, 1:1 square photo) */}
@@ -269,8 +511,8 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
               isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.25)]' : restingTilt
             } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
           >
-            {/* Scrapbook photo tape accent on top corner */}
-            <div className="absolute -top-1.5 left-5 w-8 h-2.5 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+            {/* Scrapbook photo tape accent centered on top */}
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-3 bg-black/15 dark:bg-white/15 border-x border-black/25 -rotate-1 pointer-events-none z-20 shadow-[0_1px_2px_rgba(0,0,0,0.08)]" />
 
             {/* Inner Photo Frame: 1:1 Kotak Sempurna */}
             <div className="relative w-full aspect-square overflow-hidden bg-[#09090d] border border-black/30 dark:border-white/20 flex items-center justify-center">
@@ -311,8 +553,8 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
               isSelected ? 'rotate-0 scale-[1.03] shadow-[0_8px_24px_rgba(0,0,0,0.25)]' : restingTilt
             } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
           >
-            {/* Scrapbook photo tape accent on top corner */}
-            <div className="absolute -top-1.5 left-5 w-8 h-2.5 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+            {/* Scrapbook photo tape accent centered on top */}
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-3 bg-black/15 dark:bg-white/15 border-x border-black/25 -rotate-1 pointer-events-none z-20 shadow-[0_1px_2px_rgba(0,0,0,0.08)]" />
 
             {/* Seamless single-sheet Polaroid Back */}
             <PolaroidBackSheet
@@ -414,7 +656,6 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
   // ---------------------------------------------------------------------------
   return (
     <div
-      onMouseEnter={() => sound.playTextBlip()}
       className={`group omori-card p-4 h-full flex flex-col justify-between select-none hover:!translate-y-0 hover:!transform-none transition-colors duration-200 ${
         isSelected ? 'border-[var(--text-main)] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.6)]' : ''
       }`}
@@ -441,8 +682,8 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
             } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
             title={onOpenDetails ? (lang === 'id' ? 'Klik foto untuk melihat galeri & detail' : 'Click photo to view gallery & details') : undefined}
           >
-            {/* Photo tape accent */}
-            <div className="absolute -top-1.5 left-4 w-7 h-2 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+            {/* Photo tape accent centered on top */}
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-3 bg-black/15 dark:bg-white/15 border-x border-black/25 -rotate-1 pointer-events-none z-20 shadow-[0_1px_2px_rgba(0,0,0,0.08)]" />
 
             {/* Inner Photo Frame: 1:1 Kotak Sempurna */}
             <div className="relative w-full aspect-square overflow-hidden bg-[#09090d] border border-black/30 dark:border-white/20 flex items-center justify-center">
@@ -490,8 +731,8 @@ export const OmoriPhotoCard: React.FC<OmoriPhotoCardProps> = ({
             } group-hover:rotate-0 group-hover:scale-[1.03] hover:rotate-0 hover:scale-[1.03] transition-all duration-300 ease-out cursor-pointer`}
             title={onOpenDetails ? (lang === 'id' ? 'Klik untuk melihat detail' : 'Click to view details') : undefined}
           >
-            {/* Photo tape accent */}
-            <div className="absolute -top-1.5 left-4 w-7 h-2 bg-black/10 dark:bg-white/10 border-x border-black/20 -rotate-6 pointer-events-none z-20" />
+            {/* Photo tape accent centered on top */}
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-3 bg-black/15 dark:bg-white/15 border-x border-black/25 -rotate-1 pointer-events-none z-20 shadow-[0_1px_2px_rgba(0,0,0,0.08)]" />
 
             {/* Seamless single-sheet Polaroid Back */}
             <PolaroidBackSheet

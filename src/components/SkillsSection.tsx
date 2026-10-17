@@ -149,16 +149,19 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'light' })
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 relative items-stretch">
           {skillDomains.map((domain, colIdx) => {
             const IconComponent = domain.icon;
+            const tiltAngles = ['-rotate-1', 'rotate-1', '-rotate-1.5'];
+            const restingTilt = tiltAngles[colIdx % tiltAngles.length];
+
             return (
               <div
                 key={domain.id}
-                className="omori-card p-3.5 sm:p-4 flex flex-col justify-between relative group select-none"
+                className={`omori-card p-3.5 sm:p-4 flex flex-col justify-between relative group select-none ${restingTilt} hover:rotate-0 hover:scale-[1.02] transition-all duration-300 ease-out cursor-default shadow-[0_3px_10px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.65)]`}
               >
-                {/* Scrapbook photo tape accent on top corner */}
+                {/* Scrapbook photo tape accent centered on top */}
                 <div
-                  className={`absolute -top-1.5 ${
-                    colIdx === 0 ? 'left-4 -rotate-3' : colIdx === 1 ? 'left-6 rotate-2' : 'right-5 -rotate-2'
-                  } w-7 h-2 bg-black/10 dark:bg-white/10 border-x border-black/20 pointer-events-none z-10`}
+                  className={`absolute -top-2 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-3 bg-black/15 dark:bg-white/15 border-x border-black/25 ${
+                    colIdx === 0 ? '-rotate-1' : colIdx === 1 ? 'rotate-1' : '-rotate-0.5'
+                  } pointer-events-none z-10 shadow-[0_1px_2px_rgba(0,0,0,0.08)]`}
                 />
 
                 {/* Slot 1: Nestled inside first domain column */}
@@ -197,7 +200,6 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ theme = 'light' })
                       return (
                         <div
                           key={skill._id || skill.name}
-                          onMouseEnter={() => sound.playTextBlip()}
                           className="py-1.5 flex items-center gap-2.5 hover:translate-x-0.5 transition-transform group/skill"
                         >
                           <span className="text-[var(--text-muted)] group-hover/skill:text-[var(--accent-red)] transition-colors text-xs font-mono">

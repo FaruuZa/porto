@@ -9,6 +9,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { sound } from './utils/audio';
 import { glitchManager } from './utils/glitchManager';
 import { blackSpaceManager } from './utils/blackSpaceState';
+import { blackSpaceAudio } from './utils/blackSpaceAudio';
 import { FEATURED_PROJECTS } from './data/projectsData';
 import { LanguageProvider, useLanguage } from './utils/languageContext';
 import { SplashScreen } from './components/SplashScreen';
@@ -337,13 +338,39 @@ const MainPortfolioApp: React.FC = () => {
   };
 
   const [isWakingUp, setIsWakingUp] = useState(false);
+  const [isEnteringBlackSpace, setIsEnteringBlackSpace] = useState(false);
 
-  // Enter Black Space mode
+  // Enter Black Space mode with clean blackout transition (instantly snaps theme under solid black)
   const handleEnterBlackSpace = () => {
-    if (theme !== 'black-space') {
-      setReturnTheme(theme === 'light' ? 'light' : 'dark');
-      setTheme('black-space');
-      blackSpaceManager.enterBlackSpace();
+    if (theme !== 'black-space' && !isEnteringBlackSpace) {
+      setIsEnteringBlackSpace(true);
+      sound.playBulbBuzzSFX('strong');
+      sound.playBlackSpaceTriggerSFX();
+
+      // Disable color transitions during blackout so theme snaps instantly with zero lag
+      document.documentElement.classList.add('no-theme-transition');
+      document.body.classList.add('no-theme-transition');
+
+      // At 280ms (screen is 100% solid black):
+      window.setTimeout(() => {
+        setReturnTheme(theme === 'light' ? 'light' : 'dark');
+        setTheme('black-space');
+        blackSpaceManager.enterBlackSpace();
+        blackSpaceAudio.startBlackSpace();
+
+        // Restore transitions after the DOM has completely committed the Black Space theme
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            document.documentElement.classList.remove('no-theme-transition');
+            document.body.classList.remove('no-theme-transition');
+          });
+        });
+      }, 280);
+
+      // At 850ms (screen smoothly opens directly into Black Space):
+      window.setTimeout(() => {
+        setIsEnteringBlackSpace(false);
+      }, 850);
     }
   };
 
@@ -356,8 +383,12 @@ const MainPortfolioApp: React.FC = () => {
 
     setIsWakingUp(true);
     sound.playWakeUp();
+    blackSpaceAudio.stopBlackSpace();
 
-    // At 400ms (when screen is completely black and opaque):
+    document.documentElement.classList.add('no-theme-transition');
+    document.body.classList.add('no-theme-transition');
+
+    // At 350ms (when screen is completely black and opaque):
     window.setTimeout(() => {
       // 1. Return to starting section (Section 0: Hero / White Space starting room)
       setActiveSectionIndex(0);
@@ -375,7 +406,14 @@ const MainPortfolioApp: React.FC = () => {
       // 4. Return theme to White Space
       setTheme(returnTheme);
       setBulbTriggerSignal(0);
-    }, 400);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove('no-theme-transition');
+          document.body.classList.remove('no-theme-transition');
+        });
+      });
+    }, 350);
 
     // End transition at 950ms (screen smoothly opens back up, revealing White Space)
     window.setTimeout(() => {
@@ -395,7 +433,11 @@ const MainPortfolioApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-main)] transition-colors duration-500 selection:bg-[var(--accent-red)] selection:text-white font-mono relative">
+    <div
+      className={`min-h-screen bg-[var(--bg-color)] text-[var(--text-main)] ${
+        isEnteringBlackSpace || isWakingUp ? '' : 'transition-colors duration-500'
+      } selection:bg-[var(--accent-red)] selection:text-white font-mono relative`}
+    >
       
       {/* Omori Atmospheric Splash Screen (Only on Home/Landing page) */}
       {!isProjectsPage && showSplash && (
@@ -414,10 +456,16 @@ const MainPortfolioApp: React.FC = () => {
         />
       )}
 
-      {/* Atmospheric Breathing Vignette Overlay in Black Space */}
-      {theme === 'black-space' && (
-        <div className="black-space-vignette" aria-hidden="true" />
+      {/* Dramatic Electrical Flicker Entry Overlay into Black Space */}
+      {isEnteringBlackSpace && (
+        <div
+          className="black-space-entry-overlay fixed inset-0 z-60 pointer-events-auto"
+          aria-hidden="true"
+        />
       )}
+
+      {/* Fixed Black Space Vignette Overlay */}
+      <div id="bs-vignette" aria-hidden="true" />
       
       {/* Main Top Navigation (Universal across landing and /projects) */}
       <Navbar
@@ -441,6 +489,7 @@ const MainPortfolioApp: React.FC = () => {
         <>
           {/* Main Full-Screen Snap Flow (5 Clean Sections) */}
           <main
+            id="main-content"
             key={theme}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -496,7 +545,7 @@ const MainPortfolioApp: React.FC = () => {
           {/* Desktop Right Rail Section Indicator HUD */}
           <aside
             aria-label="Section Indicator"
-            className="fixed right-4 lg:right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-end gap-2.5 select-none"
+            className="fixed right-4 lg:right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-end gap-2.5 select-none bg-transparent border-0 shadow-none"
           >
             {sectionMetadata.map((item, idx) => {
               const isActive = activeSectionIndex === idx;
@@ -532,7 +581,7 @@ const MainPortfolioApp: React.FC = () => {
                     }`}
                   >
                     {isActive && (
-                      <span className="w-1.5 h-1.5 bg-white rounded-xs"></span>
+                      <span className={`w-1.5 h-1.5 rounded-xs ${theme === 'black-space' ? 'bg-red-300/80' : 'bg-white'}`}></span>
                     )}
                   </div>
                 </button>

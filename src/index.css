@@ -23,26 +23,64 @@ html.light-theme, body.light-theme {
   --accent-pale: #0f0f12;
 }
 
-/* Black Space Easter Egg Mode - Pure void abyss with dark crimson paper, blood-charcoal borders & restrained crimson accents */
+/* Black Space Easter Egg Mode - True pitch black void abyss (dramatically darker than Dark Mode #0d0d11) */
 body.black-space-theme {
-  --bg-color: #030205;
-  --paper-color: #090509;
-  --text-main: #ecebe6;
-  --text-muted: #857880;
-  --border-color: #3d141e;
-  --accent-red: #e02828;
-  --accent-pale: #ecebe6;
+  --bg-color: #030104;
+  --paper-color: #080309;
+  --text-main: #bfbab5;
+  --text-muted: #5e4d55;
+  --border-color: #2b0b14;
+  --accent-red: #bb1d25;
+  --accent-pale: #080309;
 }
 
-/* Omori Shiny Knife Custom Cursor */
-*, html, body {
-  cursor: url('/assets/knife.svg') 2 2, auto !important;
+/* Black Space escalation: progressive desaturation & dimming across content and HUD */
+.black-space-theme #main-content,
+.black-space-theme .keyboard-hud,
+.black-space-theme .mobile-section-badge {
+  filter: brightness(var(--bs-dim, 1)) saturate(calc(1 - var(--bs-desat, 0)));
+  transition: filter 1s ease;
 }
 
+/* Right rail section dots must always remain transparent floating indicators */
+aside[aria-label="Section Indicator"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
 
-/* Slicing / down-swipe angled knife on all interactive elements */
-a, button, select, [role="button"], label[for], .cursor-pointer, summary {
-  cursor: url('/assets/knife-slice.svg') 2 2, pointer !important;
+/* Black Space HUD styling: dark ominous cards, muted blood borders, no bright glaring controls */
+.black-space-theme .keyboard-hud,
+.black-space-theme .mobile-section-badge {
+  background-color: var(--paper-color) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-muted) !important;
+}
+
+.black-space-theme .keyboard-hud kbd {
+  color: var(--accent-red) !important;
+  opacity: 0.85;
+}
+
+/* Omori Custom Cursor (Plug & Play: supports overwriting knife.svg or dropping cursor.png / cursor-pointer.png) */
+html, body {
+  cursor: url('/assets/cursor.png') 2 2, url('/assets/cursor.svg') 2 2, url('/assets/knife.svg') 2 2, auto;
+}
+
+/* Natural cursor inheritance so child elements inside interactive containers properly inherit the slice cursor */
+*, *::before, *::after {
+  cursor: inherit;
+}
+
+/* Slicing / down-swipe angled knife on ALL interactive elements AND their internal children (spans, text, svgs, paths) */
+a, a *,
+button, button *,
+select, select *,
+[role="button"], [role="button"] *,
+label[for], label[for] *,
+.cursor-pointer, .cursor-pointer *,
+summary, summary * {
+  cursor: url('/assets/cursor-pointer.png') 2 2, url('/assets/cursor-pointer.svg') 2 2, url('/assets/knife-slice.svg') 2 2, pointer !important;
 }
 
 /* Text fields keep a readable I-beam for precise caret placement */
@@ -51,8 +89,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea 
 }
 
 /* Disabled / locked controls must not look clickable */
-button:disabled, [aria-disabled="true"], .cursor-not-allowed {
-  cursor: url('/assets/knife.svg') 2 2, not-allowed !important;
+button:disabled, button:disabled *,
+[aria-disabled="true"], [aria-disabled="true"] *,
+.cursor-not-allowed, .cursor-not-allowed * {
+  cursor: url('/assets/cursor.png') 2 2, url('/assets/cursor.svg') 2 2, url('/assets/knife.svg') 2 2, not-allowed !important;
 }
 
 /* Hand-drawn dashed focus ring for keyboard users (all themes) */
@@ -265,29 +305,29 @@ body {
   scrollbar-width: none !important;
 }
 
-/* Pendulum Physics Animations: anchor at the very top ceiling origin */
+/* Pendulum Physics Animations: natural sinusoidal swings anchored at ceiling (no center pause) */
 @keyframes pendulumGentle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(3deg); }
-  75% { transform: rotate(-3deg); }
+  0% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+  100% { transform: rotate(-3deg); }
 }
 
 @keyframes pendulumSwing {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(6.5deg); }
-  75% { transform: rotate(-6.5deg); }
+  0% { transform: rotate(-6.5deg); }
+  50% { transform: rotate(6.5deg); }
+  100% { transform: rotate(-6.5deg); }
 }
 
 @keyframes pendulumPanic {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(13deg); }
-  75% { transform: rotate(-13deg); }
+  0% { transform: rotate(-13deg); }
+  50% { transform: rotate(13deg); }
+  100% { transform: rotate(-13deg); }
 }
 
 @keyframes pendulumBlackSpace {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(4.5deg); }
-  75% { transform: rotate(-4.5deg); }
+  0% { transform: rotate(-4.5deg); }
+  50% { transform: rotate(4.5deg); }
+  100% { transform: rotate(-4.5deg); }
 }
 
 .animate-pendulum-gentle {
@@ -297,7 +337,7 @@ body {
 
 .animate-pendulum-swing {
   transform-origin: 50% 0;
-  animation: pendulumSwing 1.7s ease-in-out infinite;
+  animation: pendulumSwing 1.6s ease-in-out infinite;
 }
 
 .animate-pendulum-panic {
@@ -407,7 +447,7 @@ body.mobile-menu-open .mobile-section-badge {
 /* Subtle hand-drawn ink scribble interaction */
 .scribble-mark {
   user-select: none;
-  cursor: url('/assets/knife-slice.svg') 2 2, pointer !important;
+  cursor: url('/assets/cursor-pointer.png') 2 2, url('/assets/cursor-pointer.svg') 2 2, url('/assets/knife-slice.svg') 2 2, pointer !important;
   transition: opacity 0.3s ease, transform 0.25s ease, color 0.2s ease, filter 0.2s ease;
   filter: drop-shadow(0 0 2.5px rgba(220, 38, 38, 0.5));
 }
@@ -480,6 +520,14 @@ body.mobile-menu-open .mobile-section-badge {
   pointer-events: none !important;
 }
 
+/* Disable transitions during blackout theme swap so it snaps instantly behind the curtain */
+.no-theme-transition,
+.no-theme-transition *,
+.no-theme-transition *::before,
+.no-theme-transition *::after {
+  transition: none !important;
+}
+
 /* Restrained Wake Up transition sequence */
 .wake-up-overlay {
   position: fixed;
@@ -488,6 +536,31 @@ body.mobile-menu-open .mobile-section-badge {
   background-color: #000000;
   pointer-events: all;
   animation: wakeUpSequence 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pure Blackout / Black Space Entry Sequence (smooth dark fade, zero color flicker) */
+.black-space-entry-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background-color: #000000;
+  pointer-events: all;
+  animation: enterBlackSpaceSequence 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes enterBlackSpaceSequence {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes wakeUpSequence {
@@ -505,11 +578,114 @@ body.mobile-menu-open .mobile-section-badge {
   }
 }
 
+/* Register numeric CSS properties for buttery-smooth vignette gradient transitions */
+@property --vig {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --vigred {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --vig-clear {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 56%;
+}
+
+@property --vig-mid {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 84%;
+}
+
+/* Black Space Fixed Overlay Vignette: centered tunnel vision constricting inward as intensity escalates */
+#bs-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 48;
+  --vig: 0;
+  --vigred: 0;
+  --vig-clear: 56%;
+  --vig-mid: 84%;
+  --beat: 1s;
+  background: radial-gradient(
+    ellipse at center,
+    transparent var(--vig-clear, 56%),
+    rgba(22, 2, 5, var(--vigred)) var(--vig-mid, 84%),
+    rgba(3, 1, 4, var(--vig)) 100%
+  );
+  transition: opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+              --vig 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+              --vigred 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+              --vig-clear 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+              --vig-mid 1.6s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  will-change: opacity;
+}
+
+#bs-vignette.active {
+  opacity: 1;
+}
+
+#bs-vignette.pulse {
+  animation: bs-vignette-pulse var(--beat, 1s) ease-in-out infinite;
+}
+
+#bs-vignette.pulse-strong {
+  animation: bs-vignette-pulse-strong var(--beat, 0.75s) ease-in-out infinite;
+}
+
+/* GPU compositor accelerated pulse: zero CPU layout and zero continuous filter reflow */
+@keyframes bs-vignette-pulse {
+  0%, 100% {
+    opacity: 0.88;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bs-vignette-pulse-strong {
+  0%, 100% {
+    opacity: 0.76;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Gentle heartbeat pulse for mobile drawer clue when wake up is ready */
+@keyframes gentle-pulse {
+  0%, 100% {
+    box-shadow: 0 0 2px rgba(220, 38, 38, 0.15);
+    border-color: rgba(220, 38, 38, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 9px rgba(220, 38, 38, 0.4);
+    border-color: rgba(239, 68, 68, 0.85);
+  }
+}
+
+.animate-gentle-pulse {
+  animation: gentle-pulse 2.2s ease-in-out infinite;
+}
+
 /* Accessibility: honour reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  #bs-vignette.pulse,
+  #bs-vignette.pulse-strong,
+  .animate-gentle-pulse {
+    animation: none !important;
   }
 }

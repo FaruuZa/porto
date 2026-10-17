@@ -1,16 +1,16 @@
 // Comprehensive Safe-Handling Audio Manager (BGM & SFX)
-// Manages HTML5 Audio for background music with graceful fallbacks and Web Audio API for tactical SFX.
+// Manages Generative Web Audio ambient soundscapes and tactical UI sound effects.
 
 import { audioSynthesizer } from './audioSynthesizer';
+import { ambientSoundscape, type AmbientMode } from './ambientSoundscape';
 
-type BGMMode = 'white-space' | 'black-space';
+export type BGMMode = AmbientMode;
 
 const SOUND_STORAGE_KEY = 'porto_sound_muted';
 
 class AudioManager {
   private isMuted: boolean = true;
   private currentMode: BGMMode = 'white-space';
-  private bgmAudio: HTMLAudioElement | null = null;
   private listeners: Set<(isMuted: boolean) => void> = new Set();
   private hasUserInteracted: boolean = false;
 
@@ -26,14 +26,16 @@ class AudioManager {
       } catch {}
     }
 
-    // Initial sync with synthesizer
+    // Initial sync with synthesizer and ambient soundscape
     audioSynthesizer.setMuted(this.isMuted);
+    ambientSoundscape.setMuted(this.isMuted);
 
     if (typeof window !== 'undefined') {
       const unlockListener = () => {
         this.hasUserInteracted = true;
         if (!this.isMuted) {
-          this.playBGM(this.currentMode);
+          ambientSoundscape.setMuted(false);
+          ambientSoundscape.setMode(this.currentMode);
         }
         window.removeEventListener('click', unlockListener);
         window.removeEventListener('keydown', unlockListener);
@@ -69,14 +71,15 @@ class AudioManager {
       } catch {}
     }
 
-    // Synchronize synthesizer mute state immediately
+    // Synchronize both synthesizer and ambient soundscape engines
     audioSynthesizer.setMuted(muted);
+    ambientSoundscape.setMuted(muted);
 
     if (this.isMuted) {
       this.stopBGM();
     } else {
       audioSynthesizer.playSakelarSFX();
-      // Directly initiate BGM for current mode
+      // Smoothly activate current mode with crossfaded ambient generator
       this.playBGM(this.currentMode);
     }
 
@@ -88,12 +91,10 @@ class AudioManager {
     return this.setMuted(!this.isMuted);
   }
 
-  private bgmSessionId: number = 0;
-
   /**
-   * Safe BGM Player:
-   * Handles white-space.mp3 and black-space.mp3 with multiple candidate paths
-   * and graceful error recovery so UI never freezes or throws unhandled rejections.
+   * Generative Ambient BGM Player:
+   * Pure procedural Web Audio synthesis for White Space and Black Space.
+   * Employs 2.5s crossfade between states. Zero external MP3 files required.
    */
   public playBGM(mode: BGMMode): void {
     this.currentMode = mode;
@@ -101,96 +102,17 @@ class AudioManager {
       return;
     }
 
-    const sessionId = ++this.bgmSessionId;
-
-    // Stop currently playing track if any
-    if (this.bgmAudio) {
-      try {
-        this.bgmAudio.pause();
-        this.bgmAudio.currentTime = 0;
-        this.bgmAudio.src = '';
-      } catch {}
-      this.bgmAudio = null;
-    }
-
-    const candidatePaths =
-      mode === 'black-space'
-        ? ['/audio/black-space.mp3', '/black-space.mp3']
-        : ['/audio/white-space.mp3', '/white-space.mp3'];
-
-    let candidateIndex = 0;
-
-    const audio = new Audio();
-    audio.loop = true;
-    audio.preload = 'auto';
-    audio.volume = mode === 'black-space' ? 0.4 : 0.3;
-
-    const tryPlayNext = () => {
-      if (this.isMuted || this.bgmSessionId !== sessionId) {
-        try {
-          audio.pause();
-          audio.src = '';
-        } catch {}
-        return;
-      }
-
-      if (candidateIndex >= candidatePaths.length) {
-        // All MP3 file paths 404'd or failed to load:
-        // Graceful procedural ambient synth fallback so music NEVER vanishes!
-        if (!this.isMuted && this.bgmSessionId === sessionId) {
-          audioSynthesizer.startAmbientBGM(mode);
-        }
-        return;
-      }
-      const path = candidatePaths[candidateIndex];
-      candidateIndex++;
-      audio.src = path;
-
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            if (this.isMuted || this.bgmSessionId !== sessionId) {
-              try {
-                audio.pause();
-                audio.src = '';
-              } catch {}
-              audioSynthesizer.stopAmbientBGM();
-              return;
-            }
-            // Physical MP3 succeeded! Stop procedural synth bed
-            audioSynthesizer.stopAmbientBGM();
-          })
-          .catch(() => {
-            if (this.isMuted || this.bgmSessionId !== sessionId) return;
-            // If playback failed or 404, try next candidate path or fallback to synth
-            tryPlayNext();
-          });
-      }
-    };
-
-    audio.onerror = () => {
-      if (this.isMuted || this.bgmSessionId !== sessionId) return;
-      tryPlayNext();
-    };
-
-    this.bgmAudio = audio;
-    tryPlayNext();
+    ambientSoundscape.setMode(mode);
   }
 
   public stopBGM(): void {
-    this.bgmSessionId++;
-    if (this.bgmAudio) {
-      try {
-        this.bgmAudio.pause();
-        this.bgmAudio.currentTime = 0;
-        this.bgmAudio.src = '';
-      } catch {}
-      this.bgmAudio = null;
-    }
-    audioSynthesizer.stopAmbientBGM();
+    ambientSoundscape.setMuted(true);
   }
 
+  /**
+   * Handle theme transitions (Dark/Light -> White Space, Black Space -> Black Space)
+   * Crossfades ambient soundscape smoothly over 2.5 seconds.
+   */
   public handleThemeChange(theme: 'dark' | 'light' | 'black-space'): void {
     const targetMode: BGMMode = theme === 'black-space' ? 'black-space' : 'white-space';
     const modeChanged = this.currentMode !== targetMode;

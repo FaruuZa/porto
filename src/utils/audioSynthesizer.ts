@@ -5,6 +5,8 @@ class AudioSynthesizer {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = true;
   private distortionCurve: Float32Array | null = null;
+  private lastBlipTime: number = 0;
+  private lastSakelarTime: number = 0;
 
   constructor() {
     // AudioContext is initialized lazily upon first user gesture
@@ -13,7 +15,7 @@ class AudioSynthesizer {
   /**
    * Safely obtain and resume AudioContext conforming to browser autoplay policies
    */
-  private async getContext(): Promise<AudioContext | null> {
+  public async getContext(): Promise<AudioContext | null> {
     if (typeof window === 'undefined') return null;
 
     try {
@@ -30,6 +32,10 @@ class AudioSynthesizer {
     } catch {
       return null;
     }
+  }
+
+  public async getAudioContext(): Promise<AudioContext | null> {
+    return this.getContext();
   }
 
   /**
@@ -75,34 +81,47 @@ class AudioSynthesizer {
    */
   public async playSakelarSFX(): Promise<void> {
     if (this.isMuted) return;
+    const nowMs = performance.now();
+    // Guard against rapid duplicate trigger / event bubbling within 100ms
+    if (nowMs - this.lastSakelarTime < 100) return;
+    this.lastSakelarTime = nowMs;
+
     const ctx = await this.getContext();
     if (!ctx) return;
 
     try {
       const now = ctx.currentTime;
+      const isBlackSpace = typeof document !== 'undefined' && document.body.classList.contains('black-space-theme');
 
       // --- Layer 1: Mechanical Plastic "Snap" (Shaped Noise Transient) ---
-      const noiseBufferLength = Math.floor(ctx.sampleRate * 0.035); // 35ms burst
+      const noiseBufferLength = Math.floor(ctx.sampleRate * (isBlackSpace ? 0.05 : 0.035));
       const noiseBuffer = ctx.createBuffer(1, noiseBufferLength, ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
       for (let i = 0; i < noiseBufferLength; i++) {
         // Random white noise with slight decay weighting
-        output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseBufferLength * 0.3));
+        output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseBufferLength * (isBlackSpace ? 0.4 : 0.3)));
       }
 
       const noiseSource = ctx.createBufferSource();
       noiseSource.buffer = noiseBuffer;
 
-      // Bandpass filter to isolate the tactile switch "clack"
+      // Filter: in Black Space, muffled lowpass hollow echo; otherwise crisp tactile bandpass
       const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(3200, now);
-      filter.frequency.exponentialRampToValueAtTime(800, now + 0.03);
-      filter.Q.setValueAtTime(2.5, now);
+      if (isBlackSpace) {
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(650, now);
+        filter.Q.setValueAtTime(1.2, now);
+      } else {
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(3200, now);
+        filter.frequency.exponentialRampToValueAtTime(800, now + 0.03);
+        filter.Q.setValueAtTime(2.5, now);
+      }
 
       const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.18, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+      const targetNoiseGain = isBlackSpace ? 0.04 : 0.09;
+      noiseGain.gain.setValueAtTime(targetNoiseGain, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + (isBlackSpace ? 0.05 : 0.035));
 
       noiseSource.connect(filter);
       filter.connect(noiseGain);
@@ -113,10 +132,11 @@ class AudioSynthesizer {
       const bodyGain = ctx.createGain();
 
       bodyOsc.type = 'triangle';
-      bodyOsc.frequency.setValueAtTime(145, now);
-      bodyOsc.frequency.exponentialRampToValueAtTime(45, now + 0.04);
+      bodyOsc.frequency.setValueAtTime(isBlackSpace ? 95 : 145, now);
+      bodyOsc.frequency.exponentialRampToValueAtTime(isBlackSpace ? 35 : 45, now + 0.04);
 
-      bodyGain.gain.setValueAtTime(0.14, now);
+      const targetBodyGain = isBlackSpace ? 0.045 : 0.08;
+      bodyGain.gain.setValueAtTime(targetBodyGain, now);
       bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
 
       bodyOsc.connect(bodyGain);
@@ -124,9 +144,9 @@ class AudioSynthesizer {
 
       // Trigger layers
       noiseSource.start(now);
-      noiseSource.stop(now + 0.035);
+      noiseSource.stop(now + (isBlackSpace ? 0.05 : 0.035));
       bodyOsc.start(now);
-      bodyOsc.stop(now + 0.04);
+      bodyOsc.stop(now + 0.045);
 
       // Cleanup
       setTimeout(() => {
@@ -182,17 +202,17 @@ class AudioSynthesizer {
       filter.frequency.setValueAtTime(950, now);
       filter.Q.setValueAtTime(2.2, now);
 
-      // Stutter envelope mimicking electrical contact flickering
+      // Stutter envelope mimicking electrical contact flickering (softened)
       const masterGain = ctx.createGain();
       masterGain.gain.setValueAtTime(0.001, now);
       // Burst 1
-      masterGain.gain.linearRampToValueAtTime(0.12, now + 0.03);
-      masterGain.gain.linearRampToValueAtTime(0.02, now + 0.08);
+      masterGain.gain.linearRampToValueAtTime(0.035, now + 0.03);
+      masterGain.gain.linearRampToValueAtTime(0.008, now + 0.08);
       // Burst 2
-      masterGain.gain.linearRampToValueAtTime(0.15, now + 0.12);
-      masterGain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+      masterGain.gain.linearRampToValueAtTime(0.045, now + 0.12);
+      masterGain.gain.linearRampToValueAtTime(0.006, now + 0.18);
       // Burst 3
-      masterGain.gain.linearRampToValueAtTime(0.14, now + 0.22);
+      masterGain.gain.linearRampToValueAtTime(0.04, now + 0.22);
       masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
       // Signal chain: Carrier -> Shaper -> Filter -> MasterGain -> Destination
@@ -241,9 +261,9 @@ class AudioSynthesizer {
       subOsc.frequency.exponentialRampToValueAtTime(26, now + 2.8);
 
       const subGain = ctx.createGain();
-      subGain.gain.setValueAtTime(0.01, now);
-      subGain.gain.linearRampToValueAtTime(0.22, now + 0.2); // Slow swell
-      subGain.gain.setValueAtTime(0.20, now + 1.2);
+      subGain.gain.setValueAtTime(0.005, now);
+      subGain.gain.linearRampToValueAtTime(0.075, now + 0.25); // Subtle ominous swell
+      subGain.gain.setValueAtTime(0.065, now + 1.2);
       subGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
       subOsc.connect(subGain);
@@ -270,7 +290,7 @@ class AudioSynthesizer {
 
       const droneGain = ctx.createGain();
       droneGain.gain.setValueAtTime(0.001, now);
-      droneGain.gain.linearRampToValueAtTime(0.12, now + 0.3);
+      droneGain.gain.linearRampToValueAtTime(0.04, now + 0.3);
       droneGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
       saw1.connect(droneFilter);
@@ -337,27 +357,128 @@ class AudioSynthesizer {
    */
   public async playTextBlip(): Promise<void> {
     if (this.isMuted) return;
+    const nowMs = performance.now();
+    // Throttle: ignore rapid blip requests within 130ms to prevent flurry
+    if (nowMs - this.lastBlipTime < 130) return;
+    this.lastBlipTime = nowMs;
+
     const ctx = await this.getContext();
     if (!ctx) return;
 
     try {
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
 
-      osc.type = 'triangle';
-      const baseFreq = 440 + (Math.random() * 40 - 20);
+      // Soft, warm, tactile wooden/paper micro-tap (never piercing electronic beep)
+      osc.type = 'sine';
+      const baseFreq = 220 + (Math.random() * 20 - 10);
       osc.frequency.setValueAtTime(baseFreq, now);
-      osc.frequency.exponentialRampToValueAtTime(140, now + 0.035);
+      osc.frequency.exponentialRampToValueAtTime(75, now + 0.026);
 
-      gain.gain.setValueAtTime(0.035, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, now);
 
-      osc.connect(gain);
+      gain.gain.setValueAtTime(0.015, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.026);
+
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.035);
+      osc.stop(now + 0.026);
+
+      setTimeout(() => {
+        osc.disconnect();
+        filter.disconnect();
+        gain.disconnect();
+      }, 50);
+    } catch {}
+  }
+
+  /**
+   * playBulbBuzzSFX():
+   * Authentic electric arcing / filament hum & crackle ("bzzt!")
+   * Features a distorted 60Hz/120Hz mains hum modulated with bandpass noise sparks.
+   */
+  public async playBulbBuzzSFX(intensity: 'gentle' | 'strong' = 'gentle'): Promise<void> {
+    if (this.isMuted) return;
+    const ctx = await this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const duration = intensity === 'strong' ? 0.36 : 0.16;
+
+      // Noise generator for electric crackle / arc
+      const bufferSize = Math.floor(ctx.sampleRate * duration);
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+
+      // Bandpass filter for harsh electric arcing sizzle
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(intensity === 'strong' ? 2200 : 1700, now);
+      filter.Q.setValueAtTime(2.2, now);
+
+      // Waveshaper for crackle distortion
+      const shaper = ctx.createWaveShaper();
+      shaper.curve = this.getDistortionCurve(intensity === 'strong' ? 45 : 20);
+
+      // Low mains hum oscillator (60Hz / 120Hz filament hum)
+      const humOsc = ctx.createOscillator();
+      humOsc.type = 'sawtooth';
+      humOsc.frequency.setValueAtTime(intensity === 'strong' ? 120 : 85, now);
+
+      const humFilter = ctx.createBiquadFilter();
+      humFilter.type = 'lowpass';
+      humFilter.frequency.setValueAtTime(250, now);
+
+      const humGain = ctx.createGain();
+      const humVol = intensity === 'strong' ? 0.11 : 0.05;
+      humGain.gain.setValueAtTime(humVol, now);
+      humGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      humOsc.connect(humFilter);
+      humFilter.connect(humGain);
+      humGain.connect(ctx.destination);
+
+      // Noise gain with arcing stutter envelope
+      const noiseGain = ctx.createGain();
+      const sparkVol = intensity === 'strong' ? 0.15 : 0.07;
+      noiseGain.gain.setValueAtTime(sparkVol, now);
+      // Arcing micro-stutter: bz-bzzt
+      noiseGain.gain.setValueAtTime(sparkVol * 0.25, now + duration * 0.28);
+      noiseGain.gain.setValueAtTime(sparkVol * 1.05, now + duration * 0.48);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      noiseSource.connect(filter);
+      filter.connect(shaper);
+      shaper.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      noiseSource.start(now);
+      noiseSource.stop(now + duration);
+      humOsc.start(now);
+      humOsc.stop(now + duration);
+
+      setTimeout(() => {
+        noiseSource.disconnect();
+        filter.disconnect();
+        shaper.disconnect();
+        noiseGain.disconnect();
+        humOsc.disconnect();
+        humFilter.disconnect();
+        humGain.disconnect();
+      }, (duration + 0.1) * 1000);
     } catch {}
   }
 
@@ -398,7 +519,7 @@ class AudioSynthesizer {
       tearFilter.Q.setValueAtTime(2.5, now);
 
       const tearGain = ctx.createGain();
-      tearGain.gain.setValueAtTime(0.18, now);
+      tearGain.gain.setValueAtTime(0.04, now);
       tearGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
 
       tearSrc.connect(tearFilter);
@@ -420,7 +541,7 @@ class AudioSynthesizer {
       dropFilter.frequency.setValueAtTime(500, now);
       dropFilter.frequency.exponentialRampToValueAtTime(60, now + 0.45);
 
-      dropGain.gain.setValueAtTime(0.2, now);
+      dropGain.gain.setValueAtTime(0.05, now);
       dropGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
 
       dropOsc.connect(dropFilter);
@@ -438,7 +559,7 @@ class AudioSynthesizer {
       bellOsc.frequency.setValueAtTime(1046.5, now + 0.12); // C6
 
       bellGain.gain.setValueAtTime(0.0001, now);
-      bellGain.gain.setValueAtTime(0.04, now + 0.12);
+      bellGain.gain.setValueAtTime(0.015, now + 0.12);
       bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
 
       bellOsc.connect(bellGain);
@@ -463,14 +584,14 @@ class AudioSynthesizer {
     try {
       const now = ctx.currentTime;
 
-      // Distant hollow lock thud
+      // Distant hollow lock thud (softened)
       const thudOsc = ctx.createOscillator();
       const thudGain = ctx.createGain();
       thudOsc.type = 'sine';
       thudOsc.frequency.setValueAtTime(82, now);
       thudOsc.frequency.exponentialRampToValueAtTime(32, now + 0.35);
 
-      thudGain.gain.setValueAtTime(0.18, now);
+      thudGain.gain.setValueAtTime(0.045, now);
       thudGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
 
       thudOsc.connect(thudGain);
@@ -485,13 +606,13 @@ class AudioSynthesizer {
         if (!ctx) return;
         const noteStart = now + idx * 0.11;
 
-        // Fundamental tone
+        // Fundamental tone (delicate, not blaring)
         const fundOsc = ctx.createOscillator();
         const fundGain = ctx.createGain();
         fundOsc.type = 'sine';
         fundOsc.frequency.setValueAtTime(freq, noteStart);
 
-        fundGain.gain.setValueAtTime(0.065, noteStart);
+        fundGain.gain.setValueAtTime(0.016, noteStart);
         fundGain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.55);
 
         fundOsc.connect(fundGain);
@@ -506,7 +627,7 @@ class AudioSynthesizer {
         chimeOsc.type = 'sine';
         chimeOsc.frequency.setValueAtTime(freq * 2.756, noteStart);
 
-        chimeGain.gain.setValueAtTime(0.022, noteStart);
+        chimeGain.gain.setValueAtTime(0.005, noteStart);
         chimeGain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.22);
 
         chimeOsc.connect(chimeGain);
@@ -707,3 +828,4 @@ export const audioSynthesizer = new AudioSynthesizer();
 export const playSakelarSFX = () => audioSynthesizer.playSakelarSFX();
 export const playLampuKedipSFX = () => audioSynthesizer.playLampuKedipSFX();
 export const playBlackSpaceTriggerSFX = () => audioSynthesizer.playBlackSpaceTriggerSFX();
+export const playBulbBuzzSFX = (intensity?: 'gentle' | 'strong') => audioSynthesizer.playBulbBuzzSFX(intensity);

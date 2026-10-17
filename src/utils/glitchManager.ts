@@ -14,85 +14,102 @@ class GlitchManager {
   private intervalId: number | null = null;
   private pristineContent = new Map<HTMLElement, string>();
   private activeTwitches = new Map<HTMLElement, ActiveTwitch>();
+  private currentIntensity: number = 0;
 
   public start(): void {
     if (typeof window === 'undefined') return;
-    if (this.intervalId !== null) return;
-
-    // Atmospheric pulse: glitches trigger every 450ms on visible text
-    this.intervalId = window.setInterval(() => {
-      this.pulseGlitch();
-    }, 450);
+    // On fresh entry into Black Space (L0), text glitch is at 0 (pristine/clean)
+    this.setIntensity(this.currentIntensity);
   }
 
-  private getCandidateElements(): HTMLElement[] {
+  public setIntensity(intensity: number): void {
+    this.currentIntensity = Math.max(0, Math.min(5, Math.floor(intensity)));
+
+    if (this.currentIntensity === 0) {
+      if (this.intervalId !== null) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      }
+      return;
+    }
+
+    // Interval accelerates dynamically as more doodles are erased:
+    // L1: 4200ms (rare subtle twitch)
+    // L2: 2800ms
+    // L3: 1800ms
+    // L4: 1100ms
+    // L5: 750ms (furious decay without CPU thrash)
+    const intervalMap = [0, 4200, 2800, 1800, 1100, 750];
+    const intervalMs = intervalMap[this.currentIntensity];
+
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+    }
+
+    this.intervalId = window.setInterval(() => {
+      this.pulseGlitch();
+    }, intervalMs);
+  }
+
+  private getCandidatePool(): HTMLElement[] {
     if (typeof document === 'undefined') return [];
+    const root = document.getElementById('main-content');
+    if (!root) return [];
 
     const candidates: HTMLElement[] = [];
-    const elements = document.querySelectorAll<HTMLElement>(
-      'p, span, h1, h2, h3, li, strong, kbd, [data-glitch]'
-    );
+    const elements = root.querySelectorAll<HTMLElement>('p, h1, h2, h3, li, [data-glitch="true"]');
 
-    elements.forEach((el) => {
-      // Exclude interactive elements and non-content areas
+    for (let i = 0; i < elements.length; i++) {
+      const el = elements[i];
       if (
         el.tagName === 'INPUT' ||
         el.tagName === 'TEXTAREA' ||
         el.tagName === 'BUTTON' ||
         el.closest('button') ||
         el.closest('a') ||
-        el.closest('svg') ||
-        el.closest('[data-no-glitch]') ||
-        el.closest('.scribble-mark') ||
-        el.closest('.wake-up-overlay') ||
-        el.closest('nav')
+        el.closest('[data-no-glitch="true"]') ||
+        el.closest('.scribble-mark')
       ) {
-        return;
+        continue;
       }
 
-      // Exclude containers with structural children so we only corrupt leaf content
-      const nonGlitchChildren = Array.from(el.children).filter(
-        (child) =>
-          !child.classList.contains('glitch-char-corrupt') &&
-          !child.classList.contains('glitch-char-permanent')
-      );
-      if (nonGlitchChildren.length > 0) {
-        return;
-      }
-
-      // Check if element has sufficient text content
       const text = el.textContent?.trim();
-      if (text && text.length >= 6) {
-        // Exclude elements currently undergoing a temporary twitch
-        if (!this.activeTwitches.has(el)) {
-          candidates.push(el);
-        }
+      if (text && text.length >= 6 && !this.activeTwitches.has(el)) {
+        candidates.push(el);
       }
-    });
+    }
 
     return candidates;
   }
 
   private pulseGlitch(): void {
-    const allCandidates = this.getCandidateElements();
-    if (allCandidates.length === 0) return;
+    const pool = this.getCandidatePool();
+    if (pool.length === 0) return;
 
-    // Prioritize visible elements currently within viewport
-    const visibleCandidates = allCandidates.filter((el) => {
-      const rect = el.getBoundingClientRect();
-      return rect.top < window.innerHeight && rect.bottom > 0 && rect.height > 0;
-    });
+    // Pick 1-2 targets by testing up to 4 random samples (max 4 getBoundingClientRect calls, 0 layout thrashing)
+    const countToPick = this.currentIntensity >= 4 && Math.random() < 0.4 ? 2 : 1;
+    const picked: HTMLElement[] = [];
 
-    const candidatePool = visibleCandidates.length > 0 ? visibleCandidates : allCandidates;
+    // Attempt to pick a currently visible element
+    const maxTries = Math.min(8, pool.length);
+    for (let t = 0; t < maxTries && picked.length < countToPick; t++) {
+      const candidate = pool[Math.floor(Math.random() * pool.length)];
+      if (!candidate || picked.includes(candidate)) continue;
 
-    // Corrupt 1-2 elements per pulse for noticeable yet eerie decay
-    const countToGlitch = Math.min(candidatePool.length, Math.random() < 0.4 ? 2 : 1);
-    const selected = new Set<HTMLElement>();
+      const rect = candidate.getBoundingClientRect();
+      const isVisible = rect.top < window.innerHeight + 100 && rect.bottom > -100 && rect.height > 0;
+      if (isVisible) {
+        picked.push(candidate);
+      }
+    }
 
-    for (let c = 0; c < countToGlitch; c++) {
-      const target = candidatePool[Math.floor(Math.random() * candidatePool.length)];
-      if (target && !selected.has(target) && !this.activeTwitches.has(target)) {
-        selected.add(target);
+    // Fallback if none in viewport sampled
+    if (picked.length === 0) {
+      picked.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+
+    for (const target of picked) {
+      if (target && !this.activeTwitches.has(target)) {
         this.corruptElement(target);
       }
     }
@@ -132,8 +149,8 @@ class GlitchManager {
       chars[secondIdx] = CORRUPTION_GLYPHS[Math.floor(Math.random() * CORRUPTION_GLYPHS.length)];
     }
 
-    // 35% chance that the glitch STAYS permanently for this Black Space session!
-    const shouldStayPermanent = Math.random() < 0.35;
+    // 35% chance that the glitch STAYS permanently for this Black Space session (capped at 10 to keep DOM lean)
+    const shouldStayPermanent = this.pristineContent.size < 10 && Math.random() < 0.35;
 
     const corruptedSpan = shouldStayPermanent
       ? `<span class="glitch-char-permanent">${chars.join('')}</span>`
@@ -163,6 +180,7 @@ class GlitchManager {
   }
 
   public stop(): void {
+    this.currentIntensity = 0;
     if (this.intervalId !== null) {
       clearInterval(this.intervalId);
       this.intervalId = null;

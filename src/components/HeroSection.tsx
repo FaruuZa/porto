@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { sound } from '../utils/audio';
 import { blackSpaceManager, BlackSpaceState, ScribbleLocation } from '../utils/blackSpaceState';
 import { ThemeMode } from '../App';
@@ -72,9 +72,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     return () => unsub();
   }, []);
 
-  // Reset state when leaving Black Space
+  // Reset state when leaving or entering Black Space
   useEffect(() => {
-    if (!isBlackSpace) {
+    if (isBlackSpace) {
+      setIsFlickering(false);
+      setClickCount(0);
+    } else {
       setClickCount(0);
       setIsFlickering(false);
       setCurrentMessageIndex(0);
@@ -91,17 +94,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const handleBulbClick = () => {
     if (isBlackSpace) {
       // In Black Space: The crimson bulb watches in silence.
-      // It does NOT wake you up (only the "Wake up" button does).
       sound.playSakelarSFX();
       return;
     }
 
     // White Space click progression:
     if (isFlickering) {
-      // Repeated clicks after flicker trigger transition into Black Space
-      sound.playBlackSpaceTriggerSFX();
-      setIsFlickering(false);
-      setClickCount(0);
+      // Transition into Black Space
+      sound.playBulbBuzzSFX('strong');
       onEnterBlackSpace();
       return;
     }
@@ -113,11 +113,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     setCurrentMessageIndex(nextMsgIdx);
 
     if (nextCount >= 5) {
-      // Slight flicker / subtle visual response on repeated clicks
+      // Electrical flicker on repeated clicks
       const triggered = Math.random() < 0.5 || nextCount >= 7;
       if (triggered) {
         setIsFlickering(true);
         sound.playLampuKedipSFX();
+        sound.playBulbBuzzSFX('strong');
       } else {
         sound.playSakelarSFX();
       }
@@ -126,20 +127,78 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
   };
 
-  // Restrained pendulum animations
-  let pendulumAnimationClass = '';
-  let flickerAnimationClass = '';
+  // Continuous pendulum physics controller: seamless transition without restart, zero pause at center
+  const bulbRef = useRef<HTMLDivElement>(null);
+  const physicsRef = useRef({
+    phase: 0,
+    currentAmp: isBlackSpace ? 4.2 : 2.0,
+    currentSpeed: isBlackSpace ? 2.4 : 1.6,
+    targetAmp: isBlackSpace ? 4.2 : 2.0,
+    targetSpeed: isBlackSpace ? 2.4 : 1.6,
+  });
 
+  // Update target physics parameters reactively
+  useEffect(() => {
+    let targetAmp = 2.0; // Calm natural pendulum swing at rest
+    let targetSpeed = 1.6;
+
+    if (isBlackSpace) {
+      targetAmp = 4.2;
+      targetSpeed = 2.4;
+    } else if (isFlickering) {
+      targetAmp = 11.5;
+      targetSpeed = 6.0;
+    } else if (clickCount >= 3) {
+      targetAmp = 6.8;
+      targetSpeed = 3.8;
+    } else if (clickCount >= 1) {
+      targetAmp = 3.6;
+      targetSpeed = 2.2;
+    }
+
+    physicsRef.current.targetAmp = targetAmp;
+    physicsRef.current.targetSpeed = targetSpeed;
+  }, [isBlackSpace, isFlickering, clickCount]);
+
+  useEffect(() => {
+    let animId: number;
+    let lastTime = performance.now();
+
+    const updatePhysics = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      const p = physicsRef.current;
+      // Smoothly blend amplitude and speed towards target (no sudden steps)
+      p.currentAmp += (p.targetAmp - p.currentAmp) * Math.min(dt * 3.5, 1);
+      p.currentSpeed += (p.targetSpeed - p.currentSpeed) * Math.min(dt * 3.5, 1);
+
+      // Continuous phase: NEVER resets to 0, continuing the motion seamlessly
+      p.phase += p.currentSpeed * dt;
+
+      // Pure harmonic pendulum motion: peak speed at 0deg (no jerk or pause in the middle)
+      let angle = p.currentAmp * Math.sin(p.phase);
+
+      if (isFlickering) {
+        angle += (Math.random() - 0.5) * 1.5;
+      }
+
+      if (bulbRef.current) {
+        bulbRef.current.style.transform = `rotate(${angle.toFixed(2)}deg)`;
+      }
+
+      animId = requestAnimationFrame(updatePhysics);
+    };
+
+    animId = requestAnimationFrame(updatePhysics);
+    return () => cancelAnimationFrame(animId);
+  }, [isFlickering]);
+
+  let flickerAnimationClass = '';
   if (isBlackSpace) {
-    pendulumAnimationClass = 'animate-pendulum-blackspace';
     flickerAnimationClass = 'animate-blackspace-flicker';
   } else if (isFlickering) {
-    pendulumAnimationClass = 'animate-pendulum-panic';
     flickerAnimationClass = 'animate-bulb-flicker';
-  } else if (clickCount >= 3) {
-    pendulumAnimationClass = 'animate-pendulum-swing';
-  } else if (clickCount >= 1) {
-    pendulumAnimationClass = 'animate-pendulum-gentle';
   }
 
   const currentBulbNote = useMemo(() => {
@@ -181,17 +240,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Hanging Lightbulb Assembly */}
         <div
           id="hero-bulb"
+          ref={bulbRef}
           onClick={handleBulbClick}
-          onMouseEnter={() => sound.playTextBlip()}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
+              e.stopPropagation();
               handleBulbClick();
             }
           }}
-          className={`cursor-pointer transition-transform duration-300 origin-top focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-red)] rounded-sm p-1 select-none ${pendulumAnimationClass}`}
+          className="cursor-pointer origin-top focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-red)] rounded-sm p-1 select-none will-change-transform"
           style={{ transformOrigin: '50% 0' }}
           title={isBlackSpace ? "The crimson bulb" : "A hanging lightbulb..."}
           aria-label="Omori hanging lightbulb"
@@ -293,9 +353,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Iconic Omori Dialogue Box (White Space Chamber & Student Bio) */}
         <div className="omori-box p-4 sm:p-6 text-[var(--text-main)] w-full relative shadow-2xl mt-3 sm:mt-4">
           
-          {/* Slot 0: Nested in dialogue box bottom corner */}
+          {/* Slot 0: Nested in dialogue box bottom-left corner */}
           {heroScribble && heroScribble.slotIndex === 0 && (
             <div className="absolute -bottom-3 -left-2 z-20">
+              <BlackScribble scribble={heroScribble} />
+            </div>
+          )}
+
+          {/* Slot 2: Nested in dialogue box bottom-right corner */}
+          {heroScribble && heroScribble.slotIndex === 2 && (
+            <div className="absolute -bottom-3 -right-2 z-20">
               <BlackScribble scribble={heroScribble} />
             </div>
           )}
@@ -329,7 +396,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             )}
           </div>
 
-          <h1 data-no-glitch="true" className="text-lg sm:text-2xl font-bold mb-2.5 leading-tight text-[var(--text-main)]">
+          <h1 className="text-lg sm:text-2xl font-bold mb-2.5 leading-tight text-[var(--text-main)]">
             {isBlackSpace ? (
               <span>
                 Welcome to <span className="text-[var(--accent-red)] font-bold">Black Space</span>.
@@ -341,11 +408,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           <div className="text-xs sm:text-sm leading-relaxed mb-3.5 font-sans">
             {isBlackSpace ? (
-              <div className="text-[var(--text-main)]/85 italic">
-                <span>"A quiet domain where coursework, curiosity, and unfinished prototypes intertwine.{' '}</span>
-                <span>You have been experimenting here for as long as you can remember.{' '}</span>
-                <span>Waiting for something to happen?"</span>
-              </div>
+              <p data-glitch="true" className="text-[var(--text-main)]/85 italic">
+                "A quiet domain where coursework, curiosity, and unfinished prototypes intertwine. You have been experimenting here for as long as you can remember. Waiting for something to happen?"
+              </p>
             ) : (
               <p className="text-[var(--text-main)] whitespace-pre-line">
                 {getLocalizedText(profile.heroBio, lang)}
@@ -364,33 +429,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span>{lang === 'id' ? 'Domisili' : 'Location'}: <strong className="text-[var(--text-main)]">{isBlackSpace ? '???' : (profile.location || 'Jember, ID')}</strong></span>
           </div>
 
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-5 w-full flex flex-col min-[400px]:flex-row items-stretch min-[400px]:items-center justify-center gap-2.5 sm:gap-3 relative">
-          <button
-            onClick={() => onNavigateSection?.('projects')}
-            onMouseEnter={() => sound.playTextBlip()}
-            className="press group px-5 py-2.5 sketch-border border-[var(--text-main)] bg-[var(--paper-color)] hover:bg-[var(--text-main)] hover:text-[var(--bg-color)] text-[var(--text-main)] font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>{lang === 'id' ? '[ LIHAT PROYEK' : '[ VIEW PROJECTS'}</span>
-            <span aria-hidden="true" className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">→</span>
-            <span>]</span>
-          </button>
-          <button
-            onClick={() => onNavigateSection?.('contact')}
-            onMouseEnter={() => sound.playTextBlip()}
-            className="press px-5 py-2.5 sketch-border hover:border-[var(--text-main)] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs flex items-center justify-center cursor-pointer"
-          >
-            <span>{lang === 'id' ? '[ HUBUNGI SAYA ]' : '[ CONTACT ME ]'}</span>
-          </button>
-
-          {/* Slot 2: Tucked quietly near the button row */}
-          {heroScribble && heroScribble.slotIndex === 2 && (
-            <div className="absolute -bottom-8 right-2 sm:right-0">
-              <BlackScribble scribble={heroScribble} />
-            </div>
-          )}
         </div>
 
       </div>

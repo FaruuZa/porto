@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { sound } from '../utils/audio';
 import { blackSpaceManager, ScribbleLocation } from '../utils/blackSpaceState';
+import { blackSpaceAudio } from '../utils/blackSpaceAudio';
 
 interface BlackScribbleProps {
   scribble: ScribbleLocation;
@@ -24,137 +25,221 @@ export const BlackScribble: React.FC<BlackScribbleProps> = ({ scribble, classNam
 
     window.setTimeout(() => {
       const collected = blackSpaceManager.collectScribble(scribble.id);
-      if (collected && blackSpaceManager.getState().canWakeUp) {
-        sound.playSecret();
+      if (collected) {
+        const clicks = blackSpaceManager.getState().foundCount;
+        blackSpaceAudio.setIntensity(clicks);
+        if (blackSpaceManager.getState().canWakeUp) {
+          sound.playSecret();
+        }
       }
     }, 340);
   };
 
-  // Authentic natural hand-drawn ballpoint & felt-tip marker scribbles (chaotic, irregular, messy)
+  // Authentic natural hand-drawn permanent marker & graphite vandalism scribbles
   const renderScribblePath = () => {
     switch (scribble.variant) {
       case 0:
-        // Variant 0: Frantic Ballpoint Crossout (tight, erratic zig-zags with sharp overshoots)
+        // Variant 0: Heavy Chisel Marker Zigzag Crossout (furious back-and-forth scrubbing strokes)
         return (
           <svg
-            viewBox="0 0 48 38"
-            className="w-9 h-7 sm:w-11 sm:h-8 overflow-visible pointer-events-none line-boil"
+            viewBox="0 0 54 36"
+            className="w-10 h-7 sm:w-12 sm:h-8 overflow-visible pointer-events-none line-boil"
             fill="none"
             stroke="currentColor"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            {/* Primary chaotic scratch zigzag */}
+            {/* Primary thick marker horizontal scrubbing zigzag */}
             <path
-              d="M 5,22 Q 8,11 12,19 Q 15,28 19,13 Q 23,7 26,24 Q 28,31 32,16 Q 35,9 39,26 Q 42,32 44,18"
-              strokeWidth="2.4"
+              d="M 4,14 L 50,11 L 6,19 L 48,17 L 3,25 L 51,23 L 8,30 L 46,28"
+              strokeWidth="2.8"
             />
-            {/* Overlapping aggressive cross gouge */}
+            {/* Secondary cross-scrub diagonal passes */}
             <path
-              d="M 7,12 Q 16,18 24,11 Q 31,6 38,19 Q 43,26 42,9 M 11,29 Q 19,20 28,27 Q 35,32 41,21"
+              d="M 12,8 L 44,28 M 38,7 L 10,29 M 22,6 L 36,32 M 32,5 L 18,31"
               strokeWidth="2.0"
+              opacity="0.85"
             />
-            {/* Nervous stray scratch marks & ink blot */}
+            {/* Chaotic overshoot gouge marks */}
             <path
-              d="M 14,7 L 17,31 M 23,5 L 21,33 M 31,8 L 33,30 M 8,17 L 38,15"
-              strokeWidth="1.6"
-              opacity="0.9"
+              d="M 2,12 L 10,14 M 44,18 L 53,16 M 1,26 L 12,24 M 43,30 L 52,29"
+              strokeWidth="1.8"
             />
-            <circle cx="27" cy="18" r="2.2" fill="currentColor" />
+            <circle cx="28" cy="18" r="2.2" fill="currentColor" />
             {isDissolving && (
               <g stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <line x1="24" y1="18" x2="2" y2="3" />
-                <line x1="24" y1="18" x2="46" y2="4" />
-                <line x1="24" y1="18" x2="47" y2="34" />
-                <line x1="24" y1="18" x2="1" y2="35" />
+                <line x1="27" y1="18" x2="2" y2="3" />
+                <line x1="27" y1="18" x2="52" y2="4" />
+                <line x1="27" y1="18" x2="53" y2="33" />
+                <line x1="27" y1="18" x2="1" y2="34" />
                 <circle cx="4" cy="4" r="1.8" fill="currentColor" />
-                <circle cx="44" cy="5" r="1.8" fill="currentColor" />
-                <circle cx="45" cy="32" r="1.8" fill="currentColor" />
-                <circle cx="3" cy="33" r="1.8" fill="currentColor" />
+                <circle cx="50" cy="5" r="1.8" fill="currentColor" />
+                <circle cx="51" cy="31" r="1.8" fill="currentColor" />
+                <circle cx="3" cy="32" r="1.8" fill="currentColor" />
               </g>
             )}
           </svg>
         );
 
       case 1:
-        // Variant 1: Nervous Felt-Tip Ink Tangle (irregular wandering scribble coils)
+        // Variant 1: Manic Graphite/Pencil Vandalism Scratch (sharp rapid claw gouges hacking into paper)
         return (
           <svg
-            viewBox="0 0 48 38"
-            className="w-9 h-7 sm:w-11 sm:h-8 overflow-visible pointer-events-none line-boil"
+            viewBox="0 0 54 36"
+            className="w-10 h-7 sm:w-12 sm:h-8 overflow-visible pointer-events-none line-boil"
             fill="none"
             stroke="currentColor"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            {/* Chaotic looping knot */}
+            {/* High-frequency sharp pencil slash cluster */}
             <path
-              d="M 12,24 C 6,14 18,6 27,11 C 36,16 41,8 35,19 C 29,30 11,31 8,20 C 5,9 20,4 32,8 C 42,12 43,27 34,31 C 25,35 15,26 18,17 C 21,8 34,14 28,25 C 22,33 13,22 22,15"
+              d="M 5,6 L 49,30 M 8,31 L 47,5 M 16,3 L 39,33 M 36,3 L 13,33 M 24,2 L 31,34"
               strokeWidth="2.2"
             />
-            {/* Stray aggressive slashes escaping the coil */}
+            {/* Chaotic jagged horizontal saw marks */}
             <path
-              d="M 4,28 Q 18,14 36,9 M 9,8 Q 23,22 41,27 M 16,33 L 31,5"
-              strokeWidth="1.8"
-              opacity="0.85"
+              d="M 7,18 L 14,10 L 22,25 L 30,12 L 38,24 L 46,11 L 49,20"
+              strokeWidth="2.0"
             />
-            {/* Organic ink pooling blobs */}
-            <ellipse cx="23" cy="19" rx="2.5" ry="1.8" fill="currentColor" />
-            <circle cx="33" cy="14" r="1.4" fill="currentColor" />
+            {/* Stray aggressive pencil stabs */}
+            <path
+              d="M 3,22 L 18,20 M 34,14 L 51,16 M 9,12 L 23,8 M 31,27 L 46,26"
+              strokeWidth="1.6"
+              opacity="0.9"
+            />
+            <ellipse cx="27" cy="17" rx="2.4" ry="1.6" fill="currentColor" />
             {isDissolving && (
               <g stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <line x1="24" y1="18" x2="3" y2="2" />
-                <line x1="24" y1="18" x2="45" y2="3" />
-                <line x1="24" y1="18" x2="46" y2="35" />
-                <line x1="24" y1="18" x2="2" y2="34" />
+                <line x1="27" y1="18" x2="3" y2="2" />
+                <line x1="27" y1="18" x2="51" y2="3" />
+                <line x1="27" y1="18" x2="52" y2="34" />
+                <line x1="27" y1="18" x2="2" y2="33" />
                 <circle cx="5" cy="4" r="1.6" fill="currentColor" />
-                <circle cx="43" cy="4" r="1.8" fill="currentColor" />
-                <circle cx="44" cy="33" r="1.7" fill="currentColor" />
-                <circle cx="4" cy="32" r="1.6" fill="currentColor" />
+                <circle cx="49" cy="4" r="1.8" fill="currentColor" />
+                <circle cx="50" cy="32" r="1.7" fill="currentColor" />
+                <circle cx="4" cy="31" r="1.6" fill="currentColor" />
               </g>
             )}
           </svg>
         );
 
       case 2:
-      default:
-        // Variant 2: Raw Scratch Wound (harsh jagged gouges scratched violently into paper)
+        // Variant 2: Heavy Vandal "X" Strike-Through (thick multi-stroke blackout cross)
         return (
           <svg
-            viewBox="0 0 48 38"
-            className="w-9 h-7 sm:w-11 sm:h-8 overflow-visible pointer-events-none line-boil"
+            viewBox="0 0 54 36"
+            className="w-10 h-7 sm:w-12 sm:h-8 overflow-visible pointer-events-none line-boil"
             fill="none"
             stroke="currentColor"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            {/* Sharp jagged back-and-forth pen gouges */}
+            {/* Primary heavy dual-stroke X gouges */}
             <path
-              d="M 6,9 L 41,28 M 9,31 L 43,8 M 18,4 L 29,34 M 5,20 L 44,16 M 22,33 L 26,5"
-              strokeWidth="2.4"
+              d="M 6,5 L 48,31 M 8,4 L 50,30 M 47,5 L 7,31 M 49,6 L 9,32"
+              strokeWidth="2.7"
             />
-            {/* Irregular hand scratch overlay */}
+            {/* Overlapping frantic center blackout scrawl */}
             <path
-              d="M 11,15 Q 19,8 28,12 Q 38,16 35,26 Q 30,33 21,29 Q 12,25 15,16 Z"
-              strokeWidth="1.9"
-            />
-            {/* Asymmetrical heavy pen strike */}
-            <path
-              d="M 14,24 L 20,11 L 32,23 L 37,13"
+              d="M 12,18 L 42,17 M 15,14 L 39,22 M 17,23 L 37,13 M 20,9 L 34,27"
               strokeWidth="2.1"
             />
-            <circle cx="21" cy="17" r="2.0" fill="currentColor" />
-            <circle cx="28" cy="21" r="1.6" fill="currentColor" />
+            {/* Edge overshoot splatter ticks */}
+            <circle cx="27" cy="18" r="2.8" fill="currentColor" />
+            <circle cx="16" cy="12" r="1.6" fill="currentColor" />
+            <circle cx="38" cy="24" r="1.6" fill="currentColor" />
             {isDissolving && (
               <g stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                <line x1="24" y1="18" x2="1" y2="4" />
-                <line x1="24" y1="18" x2="47" y2="2" />
-                <line x1="24" y1="18" x2="46" y2="36" />
-                <line x1="24" y1="18" x2="2" y2="35" />
+                <line x1="27" y1="18" x2="1" y2="4" />
+                <line x1="27" y1="18" x2="53" y2="2" />
+                <line x1="27" y1="18" x2="52" y2="35" />
+                <line x1="27" y1="18" x2="2" y2="34" />
                 <circle cx="3" cy="5" r="1.8" fill="currentColor" />
-                <circle cx="45" cy="3" r="1.8" fill="currentColor" />
-                <circle cx="44" cy="34" r="1.8" fill="currentColor" />
-                <circle cx="4" cy="33" r="1.8" fill="currentColor" />
+                <circle cx="51" cy="3" r="1.8" fill="currentColor" />
+                <circle cx="50" cy="33" r="1.8" fill="currentColor" />
+                <circle cx="4" cy="32" r="1.8" fill="currentColor" />
+              </g>
+            )}
+          </svg>
+        );
+
+      case 3:
+        // Variant 3: Barbed Felt-Tip Strike-Through (erratic horizontal censorship scribble)
+        return (
+          <svg
+            viewBox="0 0 54 36"
+            className="w-10 h-7 sm:w-12 sm:h-8 overflow-visible pointer-events-none line-boil"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Barbed, nervous back-and-forth censorship strike */}
+            <path
+              d="M 3,18 Q 12,10 20,22 Q 28,12 36,23 Q 44,11 51,19 M 5,16 Q 14,24 23,14 Q 31,25 40,15 Q 47,24 52,17"
+              strokeWidth="2.5"
+            />
+            {/* Rapid jagged tremor lines */}
+            <path
+              d="M 7,14 L 11,26 L 18,9 L 24,28 L 31,10 L 37,27 L 43,11 L 48,25"
+              strokeWidth="2.0"
+              opacity="0.9"
+            />
+            {/* Vandalism puncture marks */}
+            <circle cx="21" cy="18" r="2.0" fill="currentColor" />
+            <circle cx="34" cy="18" r="2.0" fill="currentColor" />
+            {isDissolving && (
+              <g stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="27" y1="18" x2="2" y2="2" />
+                <line x1="27" y1="18" x2="52" y2="2" />
+                <line x1="27" y1="18" x2="52" y2="34" />
+                <line x1="27" y1="18" x2="2" y2="34" />
+                <circle cx="4" cy="4" r="1.6" fill="currentColor" />
+                <circle cx="50" cy="4" r="1.6" fill="currentColor" />
+                <circle cx="50" cy="32" r="1.6" fill="currentColor" />
+                <circle cx="4" cy="32" r="1.6" fill="currentColor" />
+              </g>
+            )}
+          </svg>
+        );
+
+      case 4:
+      default:
+        // Variant 4: Dense Marker Vandalism Smear (deep ink pooling with furious cross-scratch)
+        return (
+          <svg
+            viewBox="0 0 54 36"
+            className="w-10 h-7 sm:w-12 sm:h-8 overflow-visible pointer-events-none line-boil"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Dense chisel marker multi-pass scribble cloud */}
+            <path
+              d="M 8,11 L 46,25 L 42,10 L 10,27 L 14,8 L 43,28 L 38,7 L 12,30"
+              strokeWidth="2.8"
+            />
+            {/* Violent jagged spikes breaking out */}
+            <path
+              d="M 3,19 L 16,16 L 27,24 L 38,15 L 51,18 M 18,3 L 26,33 M 34,4 L 28,32"
+              strokeWidth="2.2"
+            />
+            {/* Ink pooling blotches */}
+            <ellipse cx="27" cy="18" rx="3.2" ry="2.2" fill="currentColor" />
+            <circle cx="17" cy="18" r="2.0" fill="currentColor" />
+            <circle cx="37" cy="18" r="2.0" fill="currentColor" />
+            {isDissolving && (
+              <g stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <line x1="27" y1="18" x2="1" y2="3" />
+                <line x1="27" y1="18" x2="53" y2="3" />
+                <line x1="27" y1="18" x2="53" y2="34" />
+                <line x1="27" y1="18" x2="1" y2="34" />
+                <circle cx="3" cy="4" r="1.8" fill="currentColor" />
+                <circle cx="51" cy="4" r="1.8" fill="currentColor" />
+                <circle cx="51" cy="32" r="1.8" fill="currentColor" />
+                <circle cx="3" cy="32" r="1.8" fill="currentColor" />
               </g>
             )}
           </svg>
